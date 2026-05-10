@@ -88,59 +88,107 @@ button:disabled{opacity:.6;cursor:not-allowed}
 </div>
 
 <script type="module">
-import { supabase, obtenerPerfil } from './js/supabase-client.js';
+(async function bootLogin() {
+  const $form = document.getElementById('login-form');
+  const $btn  = document.getElementById('btn');
+  const $msg  = document.getElementById('msg');
 
-document.documentElement.classList.add('auth-checking');
-
-// El cliente Supabase refresca el token en segundo plano (intervalo). Eso escribe en
-// localStorage y en algunos equipos/navegadores provoca parpadeos del caret o del panel.
-// En la página de login no hace falta; al ir a mapa/admin se carga de nuevo el cliente.
-await supabase.auth.stopAutoRefresh().catch(() => {});
-
-const $form = document.getElementById('login-form');
-const $btn  = document.getElementById('btn');
-const $msg  = document.getElementById('msg');
-
-function mostrarMsg(texto, tipo = 'error') {
-  $msg.textContent = texto;
-  $msg.className   = `msg ${tipo}`;
-}
-
-async function redirigirSegunRol(perfilPrecargado) {
-  const perfil = perfilPrecargado ?? await obtenerPerfil();
-  if (!perfil) return;
-
-  const params  = new URLSearchParams(window.location.search);
-  const next    = params.get('next');
-
-  if (next && next.startsWith('/')) {
-    window.location.href = next;
-  } else {
-    window.location.href = perfil.rol === 'admin' ? '/admin.html' : '/mapa.html';
+  function bootErr(texto) {
+    document.documentElement.classList.remove('auth-checking');
+    $msg.textContent = texto;
+    $msg.className   = 'msg error';
   }
-}
 
-/** Tras signIn, a veces el JWT tarda un instante en aplicarse al cliente; un par de reintentos evitan quedar colgados. */
-async function obtenerPerfilTrasLogin() {
-  for (let i = 0; i < 6; i++) {
-    const p = await obtenerPerfil();
-    if (p) return p;
-    await new Promise(r => setTimeout(r, 100 + i * 80));
+  let supabase;
+  let obtenerPerfil;
+  try {
+    const m = await import('./js/supabase-client.js');
+    supabase = m.supabase;
+    obtenerPerfil = m.obtenerPerfil;
+  } catch (err) {
+    console.error(err);
+    bootErr(
+      'No se pudo cargar la app (configuración o red). En Vercel hace falta SUPABASE_URL y SUPABASE_ANON_KEY ' +
+      'para generar js/config.js en el build. Abre la consola (F12) para más detalle. ' +
+      (err && err.message ? '(' + err.message + ')' : '')
+    );
+    return;
   }
-  return null;
-}
 
-// Sesión ya iniciada → redirige; sesión rota (sin perfil) → se limpia y se queda en login
-(async () => {
+  document.documentElement.classList.add('auth-checking');
+
+  await supabase.auth.stopAutoRefresh().catch(() => {});
+
+  function mostrarMsg(texto, tipo = 'error') {
+    $msg.textContent = texto;
+    $msg.className   = `msg ${tipo}`;
+  }
+
+  async function redirigirSegunRol(perfilPrecargado) {
+    const perfil = perfilPrecargado ?? await obtenerPerfil();
+    if (!perfil) return;
+
+    const params  = new URLSearchParams(window.location.search);
+    const next    = params.get('next');
+
+    if (next && next.startsWith('/')) {
+      window.location.href = next;
+    } else {
+      window.location.href = perfil.rol === 'admin' ? '/admin.html' : '/mapa.html';
+    }
+  }
+
+  async function obtenerPerfilTrasLogin() {
+    for (let i = 0; i < 6; i++) {
+      const p = await obtenerPerfil();
+      if (p) return p;
+      await new Promise(r => setTimeout(r, 100 + i * 80));
+    }
+    return null;
+  }
+
+  async function correoParaLogin(identificador) {
+    const t = identificador.trim();
+    if (t.includes('@')) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) {
+        throw new Error('Escribe un correo válido.');
+      }
+      return t.toLowerCase();
+    }
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 20000);
+    let res;
+    try {
+      res = await fetch('/api/resolver-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identificador: t }),
+        signal: ctrl.signal,
+      });
+    } catch (e) {
+      if (e && e.name === 'AbortError') {
+        throw new Error('La petición tardó demasiado. Revisa SUPABASE_SERVICE_ROLE_KEY en Vercel para login con cédula.');
+      }
+      throw new Error('No se pudo contactar el servidor (/api). ¿Red o despliegue caído?');
+    } finally {
+      clearTimeout(to);
+    }
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.email) {
+      throw new Error(j.error || 'No hay cuenta con ese documento o está inactiva.');
+    }
+    return j.email;
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const perfil = await obtenerPerfil();
       if (!perfil) {
         await supabase.auth.signOut({ scope: 'local' });
-        return;
+      } else {
+        await redirigirSegunRol(perfil);
       }
-      await redirigirSegunRol(perfil);
     }
   } catch (e) {
     console.warn('Comprobación de sesión:', e);
@@ -150,84 +198,66 @@ async function obtenerPerfilTrasLogin() {
   } finally {
     document.documentElement.classList.remove('auth-checking');
   }
-})();
 
-async function correoParaLogin(identificador) {
-  const t = identificador.trim();
-  if (t.includes('@')) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) {
-      throw new Error('Escribe un correo válido.');
+  $form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const identificador = document.getElementById('login-id').value.trim();
+    const password      = document.getElementById('password').value;
+
+    $btn.disabled  = true;
+    $btn.innerHTML = '<span class="spinner"></span>Verificando…';
+    $msg.className = 'msg';
+
+    let emailLogin;
+    try {
+      emailLogin = await correoParaLogin(identificador);
+    } catch (err) {
+      mostrarMsg(err.message || 'No se pudo validar el usuario.');
+      $btn.disabled  = false;
+      $btn.innerHTML = 'Iniciar sesión';
+      return;
     }
-    return t.toLowerCase();
-  }
-  const res = await fetch('/api/resolver-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identificador: t }),
+
+    $btn.innerHTML = '<span class="spinner"></span>Iniciando sesión…';
+
+    const { error } = await supabase.auth.signInWithPassword({ email: emailLogin, password });
+
+    if (error) {
+      const traducciones = {
+        'Invalid login credentials': 'Correo/cédula o contraseña incorrectos.',
+        'Email not confirmed':       'Tu correo aún no ha sido confirmado.',
+      };
+      mostrarMsg(traducciones[error.message] || error.message);
+      $btn.disabled  = false;
+      $btn.innerHTML = 'Iniciar sesión';
+      return;
+    }
+
+    mostrarMsg('Acceso correcto. Redirigiendo…', 'ok');
+
+    const perfil = await obtenerPerfilTrasLogin();
+    if (!perfil) {
+      mostrarMsg(
+        'La sesión se abrió, pero no aparece tu perfil en la base de datos (tabla «perfiles»). ' +
+        'Pide al administrador que verifique tu usuario o revisa la consola del navegador (F12) por errores.',
+        'error'
+      );
+      await supabase.auth.signOut({ scope: 'local' });
+      $btn.disabled  = false;
+      $btn.innerHTML = 'Iniciar sesión';
+      return;
+    }
+    if (!perfil.activo) {
+      mostrarMsg('Tu cuenta está desactivada. Contacta al administrador.', 'error');
+      await supabase.auth.signOut({ scope: 'local' });
+      $btn.disabled  = false;
+      $btn.innerHTML = 'Iniciar sesión';
+      return;
+    }
+
+    await redirigirSegunRol(perfil);
   });
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok || !j.email) {
-    throw new Error(j.error || 'No hay cuenta con ese documento o está inactiva.');
-  }
-  return j.email;
-}
-
-$form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const identificador = document.getElementById('login-id').value.trim();
-  const password      = document.getElementById('password').value;
-
-  $btn.disabled  = true;
-  $btn.innerHTML = '<span class="spinner"></span>Verificando…';
-  $msg.className = 'msg';
-
-  let emailLogin;
-  try {
-    emailLogin = await correoParaLogin(identificador);
-  } catch (err) {
-    mostrarMsg(err.message || 'No se pudo validar el usuario.');
-    $btn.disabled  = false;
-    $btn.innerHTML = 'Iniciar sesión';
-    return;
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({ email: emailLogin, password });
-
-  if (error) {
-    const traducciones = {
-      'Invalid login credentials': 'Correo/cédula o contraseña incorrectos.',
-      'Email not confirmed':       'Tu correo aún no ha sido confirmado.',
-    };
-    mostrarMsg(traducciones[error.message] || error.message);
-    $btn.disabled  = false;
-    $btn.innerHTML = 'Iniciar sesión';
-    return;
-  }
-
-  mostrarMsg('Acceso correcto. Redirigiendo…', 'ok');
-
-  const perfil = await obtenerPerfilTrasLogin();
-  if (!perfil) {
-    mostrarMsg(
-      'La sesión se abrió, pero no aparece tu perfil en la base de datos (tabla «perfiles»). ' +
-      'Pide al administrador que verifique tu usuario o revisa la consola del navegador (F12) por errores.',
-      'error'
-    );
-    await supabase.auth.signOut({ scope: 'local' });
-    $btn.disabled  = false;
-    $btn.innerHTML = 'Iniciar sesión';
-    return;
-  }
-  if (!perfil.activo) {
-    mostrarMsg('Tu cuenta está desactivada. Contacta al administrador.', 'error');
-    await supabase.auth.signOut({ scope: 'local' });
-    $btn.disabled  = false;
-    $btn.innerHTML = 'Iniciar sesión';
-    return;
-  }
-
-  await redirigirSegunRol(perfil);
-});
+})();
 </script>
 </body>
 </html>
