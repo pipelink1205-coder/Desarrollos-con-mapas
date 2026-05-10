@@ -10,8 +10,17 @@ const ROOT = path.join(__dirname, '..');
 loadEnv({ path: path.join(ROOT, '.env.local') });
 loadEnv({ path: path.join(ROOT, '.env') });
 
-const url = process.env.SUPABASE_URL?.trim();
-const anon = process.env.SUPABASE_ANON_KEY?.trim();
+/** Quita comillas si alguien pegó el valor en Vercel con "..." incluido */
+function stripQuotes(s) {
+  const t = String(s || '').trim();
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+    return t.slice(1, -1).trim();
+  }
+  return t;
+}
+
+const url = stripQuotes(process.env.SUPABASE_URL);
+const anon = stripQuotes(process.env.SUPABASE_ANON_KEY);
 
 if (!url || !anon) {
   console.error('');
@@ -20,6 +29,24 @@ if (!url || !anon) {
   console.error('  • Vercel: Project → Settings → Environment Variables');
   console.error('');
   process.exit(1);
+}
+
+try {
+  const u = new URL(url);
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    throw new Error('protocolo inválido');
+  }
+} catch (e) {
+  console.error('');
+  console.error('SUPABASE_URL no es una URL válida (ej. https://xxxx.supabase.co).');
+  console.error('Valor recibido (primeros 80 chars):', url.slice(0, 80));
+  console.error('Detalle:', e.message || e);
+  console.error('');
+  process.exit(1);
+}
+
+if (!anon.startsWith('eyJ')) {
+  console.warn('Advertencia: SUPABASE_ANON_KEY no parece un JWT de Supabase (debería empezar por eyJ).');
 }
 
 const out = path.join(ROOT, 'js', 'config.js');
