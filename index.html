@@ -68,7 +68,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
   <h1>Mapa de Oferta Institucional</h1>
   <p class="sub">Discapacidad y Cuidado · Medellín</p>
 
-  <form id="login-form" novalidate>
+  <!-- onsubmit inline: si el usuario envía antes de que cargue el módulo JS, sin esto el navegador recarga la página y vacía los campos -->
+  <form id="login-form" novalidate onsubmit="event.preventDefault();">
     <label for="login-id">Correo o cédula</label>
     <input type="text" id="login-id" required autocomplete="username" placeholder="correo@gmail.com o número de documento">
 
