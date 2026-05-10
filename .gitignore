@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (NUNCA subir a git)
+.env
+.env.local
+.env*.local
+
+# Configuración pública generada localmente
+js/config.js
+
+# Vercel
+.vercel
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

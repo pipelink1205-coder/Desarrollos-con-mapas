@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa de Servicios — Discapacidad y Cuidado · Medellín</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+:root{
+  --azul:#1a3a5c;--azul-med:#2563eb;--azul-cl:#bfdbfe;--azul-xs:#eff6ff;
+  --gris:#f1f5f9;--borde:#e2e8f0;--txt:#0f172a;--txt2:#64748b;--blanco:#fff;
+  --disc-c:#2563eb;--disc-bg:#dbeafe;
+  --cuid-c:#059669;--cuid-bg:#d1fae5;
+  --mesa-c:#d97706;--mesa-bg:#fef3c7;
+  --prod-c:#7c3aed;--prod-bg:#ede9fe;
+}
+html,body{height:100%;overflow:hidden}
+body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
+
+/* HEADER */
+.hdr{background:var(--azul);color:white;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;border-bottom:2px solid rgba(37,99,235,.4)}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.hdr-logo{width:32px;height:32px;background:var(--azul-med);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.hdr h1{font-size:13px;font-weight:600}
+.hdr p{font-size:10px;opacity:.55;margin-top:1px}
+.hdr-stats{display:flex;gap:4px}
+.hstat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:3px 8px;font-size:10px;text-align:center}
+.hstat b{display:block;font-size:12px;font-weight:700}
+
+/* MAP TABS */
+.mtabs{display:flex;background:#0c1e33;gap:2px;padding:6px 8px 0;flex-shrink:0}
+.mtab{flex:1;padding:9px 6px;font-size:12px;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;border:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.45);transition:.2s;display:flex;align-items:center;justify-content:center;gap:5px;border-bottom:3px solid transparent}
+.mtab:hover:not(.active){background:rgba(255,255,255,.09);color:rgba(255,255,255,.75)}
+.mtab.active{color:white}
+.mtab.disc.active{background:rgba(37,99,235,.22);color:#60a5fa;border-bottom-color:#2563eb}
+.mtab.cuid.active{background:rgba(5,150,105,.22);color:#34d399;border-bottom-color:#059669}
+.mtab.mesa.active{background:rgba(217,119,6,.22);color:#fbbf24;border-bottom-color:#d97706}
+.mtab.prod.active{background:rgba(124,58,237,.22);color:#a78bfa;border-bottom-color:#7c3aed}
+.mcnt{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:700;background:rgba(255,255,255,.1)}
+.disc.active .mcnt{background:#1e3a8a;color:#93c5fd}
+.cuid.active .mcnt{background:#064e3b;color:#6ee7b7}
+.mesa.active .mcnt{background:#78350f;color:#fde68a}
+.prod.active .mcnt{background:#4c1d95;color:#c4b5fd}
+
+/* LAYOUT */
+.layout{flex:1;display:flex;overflow:hidden}
+
+/* MAPA */
+.mwrap{flex:1;position:relative;min-width:0}
+#mapa{width:100%;height:100%}
+
+/* HINT FLOTANTE */
+.mhint{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(12,30,51,.9);color:white;padding:7px 16px;border-radius:20px;font-size:11px;pointer-events:none;white-space:nowrap;transition:opacity .4s;backdrop-filter:blur(4px)}
+.mhint.hide{opacity:0}
+
+/* LEYENDA */
+.mley{position:absolute;bottom:26px;right:10px;z-index:500;background:rgba(255,255,255,.97);border:1px solid var(--borde);border-radius:10px;padding:10px 13px;min-width:155px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.mley-h{font-size:10px;font-weight:700;color:var(--azul);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.mley-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;color:var(--txt2)}
+.ldot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(255,255,255,.8);flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.lsep{border:none;border-top:1px solid var(--borde);margin:7px 0}
+.lgrad{height:8px;width:100%;border-radius:3px;margin-bottom:2px}
+.lnums{display:flex;justify-content:space-between;font-size:9px;color:var(--txt2)}
+
+/* PANEL */
+.panel{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid rgba(255,255,255,.05);background:var(--blanco)}
+.phead{padding:12px 14px;border-bottom:1px solid var(--borde);flex-shrink:0}
+.phead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ptitulo{font-size:14px;font-weight:700;color:var(--azul);line-height:1.2}
+.psub{font-size:10px;color:var(--txt2);margin-top:2px}
+.btn-back{padding:4px 10px;border:1px solid var(--borde);border-radius:5px;background:var(--gris);color:var(--azul);font-size:11px;cursor:pointer;font-weight:500;display:none;white-space:nowrap}
+.btn-back:hover{background:var(--azul-cl)}
+
+/* KPIS */
+.pkpis{display:none;grid-template-columns:repeat(3,1fr);gap:5px;padding:10px 14px;border-bottom:1px solid var(--borde);background:var(--gris)}
+.pkpis.vis{display:grid}
+.pk{background:var(--blanco);border:1px solid var(--borde);border-radius:7px;padding:6px 5px;text-align:center}
+.pk-v{font-size:17px;font-weight:700;line-height:1}
+.pk-l{font-size:9px;color:var(--txt2);margin-top:2px;line-height:1.2}
+
+/* FILTROS */
+.pfiltros{display:none;padding:7px 12px;border-bottom:1px solid var(--borde);background:var(--blanco);gap:5px;align-items:center;flex-wrap:wrap}
+.pfiltros.vis{display:flex}
+.pf-in{flex:1;min-width:90px;font-size:11px;border:1px solid var(--borde);border-radius:5px;padding:4px 8px;background:var(--blanco);color:var(--txt)}
+.pf-in:focus{outline:none;border-color:var(--azul-med)}
+.pf-sel{font-size:11px;border:1px solid var(--borde);border-radius:5px;padding:4px 6px;background:var(--blanco);color:var(--txt);cursor:pointer}
+.pf-sel:focus{outline:none;border-color:var(--azul-med)}
+.pf-lbl{font-size:10px;color:var(--txt2);font-weight:500;white-space:nowrap}
+
+/* CARDS */
+.pcards{flex:1;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:7px}
+.ocard{background:var(--blanco);border:1px solid var(--borde);border-radius:9px;padding:10px 12px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.ocard:hover{box-shadow:0 2px 10px rgba(0,0,0,.09);transform:translateX(2px)}
+.ocard.hl{background:var(--azul-xs)}
+.disc-tab .ocard{border-left-color:#bfdbfe}.disc-tab .ocard:hover,.disc-tab .ocard.hl{border-left-color:var(--disc-c)}
+.cuid-tab .ocard{border-left-color:#a7f3d0}.cuid-tab .ocard:hover,.cuid-tab .ocard.hl{border-left-color:var(--cuid-c)}
+.mesa-tab .ocard{border-left-color:var(--mesa-bg)}.mesa-tab .ocard:hover,.mesa-tab .ocard.hl{border-left-color:var(--mesa-c)}
+.cn{font-size:12px;font-weight:600;color:var(--azul);line-height:1.3;margin-bottom:3px}
+.cd{font-size:10px;color:var(--txt2);margin-bottom:3px;line-height:1.3}
+.cprog{font-size:10px;color:var(--txt2);font-style:italic;margin-bottom:3px}
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px}
+.tag{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:500}
+.t-d{background:#dbeafe;color:#1e40af}
+.t-s{background:#d1fae5;color:#065f46}
+.t-gr{background:#dcfce7;color:#15803d}
+.t-pg{background:#fef3c7;color:#a16207}
+.t-dim{background:var(--prod-bg);color:var(--prod-c)}
+.t-q{background:#f3e8ff;color:#7c3aed}
+.cft{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--borde);padding-top:5px;margin-top:2px}
+.ctel{font-size:10px;color:var(--azul-med);font-weight:500}
+.np{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:500}
+.np-A{background:#dcfce7;color:#15803d}
+.np-M{background:#fef3c7;color:#a16207}
+.np-B{background:#fee2e2;color:#b91c1c}
+
+/* EMPTY */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 20px;color:var(--txt2)}
+.empty-ico{font-size:38px;margin-bottom:10px}
+.empty h3{font-size:13px;font-weight:600;color:var(--azul);margin-bottom:5px}
+.empty p{font-size:11px;line-height:1.6}
+
+/* PÁGINA PRODUCTOS */
+.prod-page{flex:1;overflow-y:auto;padding:16px;background:var(--gris)}
+.prod-hdr{background:var(--blanco);border:1px solid var(--borde);border-radius:10px;padding:14px 18px;margin-bottom:14px}
+.prod-h1{font-size:15px;font-weight:700;color:var(--azul);margin-bottom:2px}
+.prod-h2{font-size:11px;color:var(--txt2);margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 13px;border-radius:18px;border:1px solid var(--borde);background:var(--blanco);font-size:11px;cursor:pointer;color:var(--txt2);font-weight:500;transition:.15s}
+.chip.active{background:var(--prod-c);color:white;border-color:var(--prod-c)}
+.chip:hover:not(.active){background:var(--prod-bg);border-color:var(--prod-c);color:var(--prod-c)}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:11px}
+.pcard{background:var(--blanco);border:1px solid var(--borde);border-radius:10px;padding:14px;transition:.15s;border-top:3px solid var(--prod-c)}
+.pcard:hover{box-shadow:0 4px 14px rgba(124,58,237,.15);transform:translateY(-2px)}
+.pcat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--prod-c);margin-bottom:5px}
+.pprov{font-size:13px;font-weight:600;color:var(--azul);margin-bottom:4px;line-height:1.3}
+.poferta{font-size:11px;color:var(--txt2);line-height:1.4;margin-bottom:9px}
+.pcontacto{font-size:11px;color:var(--azul-med);font-weight:500;padding-top:8px;border-top:1px solid var(--borde)}
+
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.mbg.open{display:flex}
+.modal{background:var(--blanco);border-radius:13px;padding:22px;max-width:490px;width:100%;max-height:88vh;overflow-y:auto;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.mx{position:absolute;top:11px;right:12px;font-size:18px;cursor:pointer;color:var(--txt2);background:none;border:none;line-height:1;padding:3px 7px;border-radius:4px}
+.mx:hover{background:var(--gris)}
+.mbadge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:8px;margin-bottom:8px}
+.mn{font-size:15px;font-weight:700;color:var(--azul);margin-bottom:14px;padding-right:28px;line-height:1.3}
+.mc{display:flex;gap:10px;margin-bottom:8px;font-size:12px;align-items:flex-start}
+.mcl{color:var(--txt2);font-weight:500;min-width:90px;flex-shrink:0;font-size:11px;line-height:1.6}
+.mcv{color:var(--txt);line-height:1.5;flex:1}
+
+/* Leaflet label communes / corregimientos */
+.leaflet-label-num{background:transparent;border:none;box-shadow:none;font-weight:700;text-shadow:0 1px 3px rgba(255,255,255,.9),0 1px 3px rgba(255,255,255,.9);pointer-events:none}
+.leaflet-label-correg{font-weight:800}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-logo">♿</div>
+    <div>
+      <h1>Directorio de Servicios — Discapacidad y Cuidado · Medellín</h1>
+      <p>Polígonos oficiales CNMH / Alcaldía · Intensidad real de oferta por comuna</p>
+    </div>
+  </div>
+  <div class="hdr-stats">
+    <div class="hstat" style="border-color:rgba(96,165,250,.4)"><b style="color:#60a5fa">138</b>Discap.</div>
+    <div class="hstat" style="border-color:rgba(52,211,153,.4)"><b style="color:#34d399">55</b>Cuidados</div>
+    <div class="hstat" style="border-color:rgba(251,191,36,.4)"><b style="color:#fbbf24">18</b>Mesas</div>
+    <div class="hstat" style="border-color:rgba(167,139,250,.4)"><b style="color:#a78bfa">29</b>Productos</div>
+  </div>
+</div>
+
+<div class="mtabs">
+  <button class="mtab disc active" id="mt-disc" onclick="setTab('disc')">♿ Discapacidad <span class="mcnt">138</span></button>
+  <button class="mtab cuid"        id="mt-cuid" onclick="setTab('cuid')">💚 Cuidadores   <span class="mcnt">55</span></button>
+  <button class="mtab mesa"        id="mt-mesa" onclick="setTab('mesa')">🤝 Mesas        <span class="mcnt">18</span></button>
+  <button class="mtab prod"        id="mt-prod" onclick="setTab('prod')">🦽 Productos    <span class="mcnt">29</span></button>
+</div>
+
+<div class="layout" id="lay-mapa">
+  <div class="mwrap">
+    <div id="mapa"></div>
+    <div class="mhint" id="mhint">👆 Haz clic en una comuna o corregimiento para explorar</div>
+    <div class="mley" id="mley">
+      <div class="mley-h">Leyenda</div>
+      <div id="ley-punto"></div>
+      <div id="ley-heat"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="phead">
+      <div class="phead-top">
+        <div>
+          <div class="ptitulo" id="ptitulo">Medellín — Vista general</div>
+          <div class="psub"    id="psub">Selecciona una zona del mapa</div>
+        </div>
+        <button class="btn-back" id="btn-back" onclick="volverVista()">← Volver</button>
+      </div>
+    </div>
+    <div class="pkpis" id="pkpis">
+      <div class="pk"><div class="pk-v" id="pk1">0</div><div class="pk-l" id="pk1l">Total</div></div>
+      <div class="pk"><div class="pk-v" id="pk2" style="color:#15803d">0</div><div class="pk-l">Sin costo</div></div>
+      <div class="pk"><div class="pk-v" id="pk3" style="color:var(--prod-c)">0</div><div class="pk-l">📌 Georef.</div></div>
+    </div>
+    <div class="pfiltros" id="pfiltros">
+      <input class="pf-in" id="buscar" placeholder="🔍 buscar…" oninput="renderCards()">
+      <span id="wrap-disc" style="display:flex;align-items:center;gap:4px">
+        <span class="pf-lbl">Disc.</span>
+        <select class="pf-sel" id="f-disc" onchange="renderCards()">
+          <option value="">Todas</option>
+          <option>Intelectual</option><option>Fisica</option>
+          <option>Mental</option><option>Visual</option><option>Auditiva</option>
+        </select>
+      </span>
+      <span style="display:flex;align-items:center;gap:4px">
+        <span class="pf-lbl">Costo</span>
+        <select class="pf-sel" id="f-cos" onchange="renderCards()">
+          <option value="">Todos</option>
+          <option value="gr">Sin costo</option>
+          <option value="pg">Con costo</option>
+        </select>
+      </span>
+    </div>
+    <div class="pcards" id="pcards">
+      <div class="empty">
+        <div class="empty-ico">🗺</div>
+        <h3>Selecciona una zona</h3>
+        <p>Haz clic en cualquier comuna<br>o corregimiento del mapa</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="layout" id="lay-prod" style="display:none">
+  <div class="prod-page">
+    <div class="prod-hdr">
+      <div class="prod-h1">🦽 Productos y ayudas técnicas</div>
+      <div class="prod-h2">Proveedores especializados · 29 productos · 4 categorías</div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="prod-grid" id="pgrid"></div>
+  </div>
+</div>
+
+<div class="mbg" id="modal">
+  <div class="modal">
+    <button class="mx" onclick="cerrar()">✕</button>
+    <div class="mbadge" id="mbadge"></div>
+    <div class="mn"     id="mn"></div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATOS
+// ═══════════════════════════════════════════════════════════
+DATA_PLACEHOLDER
+
+// ═══════════════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════════════
+const MAX_CNT   = Math.max(...GEO.features.map(f=>f.properties.cnt||0), 1);
+let tab         = 'disc';
+let zona        = null;    // feature.properties.nombre
+let orgKey      = null;
+let zonaLayer   = null;
+let zonaOrgs    = [];
+
+let mapa=null, layerGeo=null, layerPtos=null, layerLabels=null, labelZoomRaf=null;
+
+// Tab config
+const CFG = {
+  disc:{ c:'#2563eb', bg:'#dbeafe', lbl:'♿ Discapacidad',   data:()=>DISC_ORGS, r:7 },
+  cuid:{ c:'#059669', bg:'#d1fae5', lbl:'💚 Oferta cuidados',data:()=>CUID_ORGS, r:7 },
+  mesa:{ c:'#d97706', bg:'#fef3c7', lbl:'🤝 Mesa cuidado',   data:()=>MESA_ORGS, r:8 },
+};
+
+// ═══════════════════════════════════════════════════════════
+//  HEAT COLOR
+// ═══════════════════════════════════════════════════════════
+function heatColor(cnt, correg) {
+  if (!cnt || cnt === 0) return correg ? '#e8eaf6' : '#f1f5f9';
+  const t = Math.min(cnt / MAX_CNT, 1);
+  // Blue heat: light (#dbeafe) → dark (#1e3a8a)
+  const r = Math.round(219 + (30  - 219) * t);
+  const g = Math.round(234 + (58  - 234) * t);
+  const b = Math.round(254 + (138 - 254) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAPA INIT
+// ═══════════════════════════════════════════════════════════
+function initMapa() {
+  mapa = L.map('mapa', { zoomControl: true, preferCanvas: true })
+           .setView([6.2518, -75.5636], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19
+  }).addTo(mapa);
+
+  // GeoJSON con comunas
+  layerGeo = L.geoJSON(GEO, {
+    style: f => estiloZona(f, false),
+    onEachFeature: (f, lyr) => {
+      const p   = f.properties;
+      const cnt = p.cnt || 0;
+      lyr.bindTooltip(
+        `<strong>${p.nombre_corto || p.nombre}</strong> — ${p.tipo === 'corregimiento' ? 'Corregimiento' : 'Comuna'} ${p.numero}<br>` +
+        (tab === 'disc' ? `<span style="color:#2563eb;font-weight:600">${cnt} organización${cnt!==1?'es':''} de discapacidad</span>` : ''),
+        { sticky: true, direction: 'top', className: 'leaflet-tooltip' }
+      );
+      lyr.on('click',     () => seleccionar(f, lyr));
+      lyr.on('mouseover', () => { if (zona !== f.properties.nombre) lyr.setStyle({ fillOpacity: .82, weight: 2.5, color:'#1a3a5c' }); });
+      lyr.on('mouseout',  () => { if (zona !== f.properties.nombre) layerGeo.resetStyle(lyr); });
+    }
+  }).addTo(mapa);
+
+  pintarPuntos(CFG[tab].data());
+  pintarLabels();
+  actualizarLeyenda();
+
+  mapa.on('zoom', schedulePintarLabels);
+  mapa.on('zoomend', pintarLabels);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ESTILO ZONA
+// ═══════════════════════════════════════════════════════════
+function estiloZona(f, sel) {
+  const p      = f.properties;
+  const correg = p.tipo === 'corregimiento';
+  let fillColor = '#f1f5f9';
+
+  if (tab === 'disc') {
+    fillColor = heatColor(p.cnt || 0, correg);
+  } else if (tab === 'cuid') {
+    fillColor = correg ? '#d1fae5' : '#ecfdf5';
+  } else {
+    fillColor = correg ? '#fef3c7' : '#fffbeb';
+  }
+
+  return {
+    fillColor,
+    fillOpacity: sel ? 0.12 : 0.68,
+    color:  sel ? '#1a3a5c' : '#94a3b8',
+    weight: sel ? 2.8 : 1.2,
+    opacity: .95
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LABELS DE NUMERO (tamaño crece con zoom; opacidad → 0 al acercar mucho)
+// ═══════════════════════════════════════════════════════════
+/** Al acercar (zoom alto) se diluyen; vista amplia = visibles. */
+function opacidadEtiquetaPorZoom(z) {
+  const zPlenoHasta = 12.15;
+  const zDesaparece = 15.05;
+  if (z <= zPlenoHasta) return 1;
+  if (z >= zDesaparece) return 0;
+  const t = (z - zPlenoHasta) / (zDesaparece - zPlenoHasta);
+  const s = t * t * (3 - 2 * t);
+  return 1 - s;
+}
+
+function tamFuenteEtiqueta(z) {
+  const base = 7.2;
+  const porNivel = 2.45;
+  const raw = base + Math.max(0, z - 10) * porNivel;
+  return Math.min(30, Math.max(7.5, raw));
+}
+
+function schedulePintarLabels() {
+  if (labelZoomRaf != null) return;
+  labelZoomRaf = requestAnimationFrame(() => {
+    labelZoomRaf = null;
+    pintarLabels();
+  });
+}
+
+function pintarLabels() {
+  if (!mapa) return;
+  if (layerLabels) { mapa.removeLayer(layerLabels); layerLabels = null; }
+  const z = mapa.getZoom();
+  const fade = opacidadEtiquetaPorZoom(z);
+  if (fade <= 0.02) return;
+
+  const sizePx = tamFuenteEtiqueta(z);
+  layerLabels = L.layerGroup();
+
+  GEO.features.forEach(f => {
+    const p = f.properties;
+    if (!p.clat || !p.clon) return;
+    if (p.numero == null) return;
+    const num = String(p.numero);
+    const correg = p.tipo === 'corregimiento';
+    const altoCnt = (p.cnt || 0) > 15;
+    const color = correg
+      ? (altoCnt ? '#4c1d95' : '#6d28d9')
+      : (altoCnt ? '#1e3a8a' : '#374151');
+
+    const w = Math.ceil(num.length * sizePx * 0.52 + 12);
+    const h = Math.ceil(sizePx * 1.48);
+
+    const icon = L.divIcon({
+      className: correg ? 'leaflet-label-num leaflet-label-correg' : 'leaflet-label-num',
+      html: `<span style="
+        font-size:${sizePx}px;font-weight:700;color:${color};
+        opacity:${fade};display:block;text-align:center;line-height:1;
+        text-shadow:0 1px 2px rgba(255,255,255,.94),0 -1px 2px rgba(255,255,255,.94),
+                    1px 0 2px rgba(255,255,255,.94),-1px 0 2px rgba(255,255,255,.94);
+        pointer-events:none;white-space:nowrap">${num}</span>`,
+      iconSize:   [w, h],
+      iconAnchor: [Math.floor(w / 2), Math.floor(h / 2)]
+    });
+    L.marker([p.clat, p.clon], { icon, interactive: false }).addTo(layerLabels);
+  });
+  layerLabels.addTo(mapa);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PINTAR PUNTOS
+// ═══════════════════════════════════════════════════════════
+function pintarPuntos(orgs, zonaOrgs) {
+  if (layerPtos) { mapa.removeLayer(layerPtos); layerPtos = null; }
+  const cfg    = CFG[tab];
+  const z      = mapa ? mapa.getZoom() : 12;
+  const inZona = new Set((zonaOrgs || []).map(o => o.id));
+  const hasSel = zonaOrgs && zonaOrgs.length > 0;
+
+  layerPtos = L.layerGroup();
+  orgs.filter(o => o.lat && o.lon).forEach(o => {
+    const enZona = inZona.has(o.id);
+    const radio  = hasSel ? (enZona ? cfg.r : Math.max(3, cfg.r - 3)) : cfg.r;
+    const opac   = hasSel ? (enZona ? 0.95 : 0.25) : 0.92;
+    const peso   = hasSel ? (enZona ? 1.8  : 0.8)  : 1.8;
+    mkMarker(o, cfg, radio, opac, peso);
+  });
+  layerPtos.addTo(mapa);
+}
+
+function mkMarker(o, cfg, radio, fillOpacity, weight) {
+  const mk = L.circleMarker([o.lat, o.lon], {
+    radius: radio, color: 'white', weight,
+    fillColor: cfg.c, fillOpacity
+  });
+
+  const gratis    = o.cos && o.cos.toLowerCase().includes('sin costo');
+  const discsHtml = (o.discs||[]).map(d =>
+    `<span style="background:#dbeafe;color:#1e40af;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${d}</span>`
+  ).join('');
+  const progHtml = o.programa ? `<div style="color:#64748b;font-size:10px;font-style:italic;margin-bottom:3px">${o.programa.slice(0,50)}</div>` : '';
+  const dimHtml  = (o.eje||o.dim)&&(o.eje||o.dim)!=='nan' ? `<div style="color:#7c3aed;font-size:10px;margin-bottom:2px">📌 ${(o.eje||o.dim).replace(/\n/g,' ').slice(0,40)}</div>` : '';
+
+  mk.bindPopup(`
+    <div style="min-width:215px;max-width:268px;font-size:12px">
+      <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-bottom:5px">${cfg.lbl}</div>
+      <strong style="color:#1a3a5c;font-size:13px;display:block;margin-bottom:3px">${o.n}</strong>
+      ${o.d&&o.d!=='nan'?`<div style="color:#64748b;font-size:11px;margin-bottom:2px">📍 ${o.d}</div>`:''}
+      ${progHtml}${dimHtml}
+      ${discsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>`:''}
+      ${o.cos&&o.cos!=='nan'?`<div style="font-size:11px;color:${gratis?'#15803d':'#a16207'};margin-bottom:3px">💰 ${o.cos.slice(0,35)}</div>`:''}
+      ${o.cupos&&o.cupos!=='nan'?`<div style="font-size:11px;color:#7c3aed;margin-bottom:3px">👥 Cupos: ${o.cupos}</div>`:''}
+      ${o.srv&&o.srv!=='nan'?`<div style="color:#475569;font-size:11px;line-height:1.4;margin:5px 0;padding-top:5px;border-top:1px solid #e2e8f0">${o.srv.replace(/\n/g,' ').slice(0,115)}…</div>`:''}
+      ${o.tel&&o.tel!=='nan'?`<div style="color:#2563eb;font-size:11px;font-weight:500;margin-bottom:2px">📞 ${o.tel}</div>`:''}
+      <button onclick='abrirModal(${JSON.stringify(JSON.stringify(o))})' style="margin-top:8px;width:100%;padding:5px;background:#1a3a5c;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500">📋 Ver ficha completa</button>
+    </div>`, { maxWidth: 285 });
+
+  mk.on('click', () => setTimeout(() => {
+    document.querySelectorAll('.ocard').forEach(c => c.classList.remove('hl'));
+    const card = document.querySelector(`[data-id="${o.id}"]`);
+    if (card) { card.classList.add('hl'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }, 120));
+
+  layerPtos.addLayer(mk);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LEYENDA DINÁMICA
+// ═══════════════════════════════════════════════════════════
+function actualizarLeyenda() {
+  const cfg = CFG[tab];
+  if (!cfg) return;
+  document.getElementById('ley-punto').innerHTML =
+    `<div class="mley-row"><span class="ldot" style="background:${cfg.c}"></span>${cfg.lbl}</div>`;
+  document.getElementById('ley-heat').innerHTML = tab === 'disc' ? `
+    <div class="lsep"></div>
+    <div class="mley-row" style="font-size:10px;font-weight:600;color:var(--azul)">Intensidad de oferta</div>
+    <div class="lgrad" style="background:linear-gradient(to right,#dbeafe,#1e3a8a)"></div>
+    <div class="lnums"><span>Sin oferta</span><span>Alta (32)</span></div>
+    <div style="margin-top:6px">
+      ${[[1,'1–3 orgs','#c7ddfb'],[4,'4–10 orgs','#93bbf5'],[11,'11–20 orgs','#5b8dea'],[21,'21+ orgs','#1e4db7']].map(([,l,c])=>
+        `<div class="mley-row"><span class="ldot" style="background:${c}"></span>${l}</div>`).join('')}
+    </div>` : '';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SELECCIONAR ZONA
+// ═══════════════════════════════════════════════════════════
+function seleccionar(f, lyr) {
+  const p    = f.properties;
+  zona       = p.nombre;
+  orgKey     = p.org_key;
+  zonaLayer  = lyr;
+
+  // Estilos
+  layerGeo.eachLayer(l => layerGeo.resetStyle(l));
+  lyr.setStyle(estiloZona(f, true));
+  lyr.bringToFront();
+  mapa.fitBounds(lyr.getBounds(), { padding:[28,28], maxZoom:15 });
+
+  // Todos los puntos pero los de fuera pequeños
+  const allOrgs  = CFG[tab].data();
+  const bounds   = lyr.getBounds();
+  const zOrgs    = tab === 'disc'
+    ? allOrgs.filter(o => o.c === orgKey)
+    : allOrgs.filter(o => o.lat && o.lon && bounds.contains([o.lat,o.lon]));
+  zonaOrgs = zOrgs;
+
+  pintarPuntos(allOrgs.filter(o=>o.lat&&o.lon), zOrgs);
+
+  // Panel
+  const tipo = p.tipo === 'corregimiento' ? 'Corregimiento' : 'Comuna';
+  document.getElementById('ptitulo').textContent = p.nombre_corto || p.nombre;
+  document.getElementById('psub').textContent    = `${tipo} ${p.numero} · ${zOrgs.length} registro${zOrgs.length!==1?'s':''}`;
+  document.getElementById('btn-back').style.display = 'block';
+  document.getElementById('pkpis').classList.add('vis');
+  document.getElementById('pfiltros').classList.add('vis');
+  document.getElementById('mhint').classList.add('hide');
+
+  const gratis = zOrgs.filter(o=>o.cos&&o.cos.toLowerCase().includes('sin costo')).length;
+  const geo    = zOrgs.filter(o=>o.lat&&o.lon).length;
+  document.getElementById('pk1').textContent = zOrgs.length;
+  document.getElementById('pk1').style.color = CFG[tab].c;
+  document.getElementById('pk1l').textContent = (CFG[tab].lbl.replace(/[^\w\s]/g,'').trim());
+  document.getElementById('pk2').textContent = gratis || '—';
+  document.getElementById('pk3').textContent = geo;
+
+  document.getElementById('wrap-disc').style.display = tab==='disc'?'flex':'none';
+  document.getElementById('pcards').className = `pcards ${tab}-tab`;
+  document.getElementById('buscar').value = '';
+  document.getElementById('f-disc').value = '';
+  document.getElementById('f-cos').value  = '';
+  renderCards();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER CARDS
+// ═══════════════════════════════════════════════════════════
+function renderCards() {
+  if (!zona) return;
+  const q  = (document.getElementById('buscar').value||'').toLowerCase();
+  const fd = document.getElementById('f-disc').value.toLowerCase();
+  const fc = document.getElementById('f-cos').value;
+
+  let orgs = [...zonaOrgs];
+  if (q)  orgs = orgs.filter(o => o.n.toLowerCase().includes(q) || o.srv.toLowerCase().includes(q));
+  if (fd) orgs = orgs.filter(o => (o.discs||[]).some(d=>d.toLowerCase()===fd));
+  if (fc==='gr') orgs = orgs.filter(o=>o.cos&&o.cos.toLowerCase().includes('sin costo'));
+  if (fc==='pg') orgs = orgs.filter(o=>o.cos&&!o.cos.toLowerCase().includes('sin costo'));
+
+  // Redibujar puntos con filtro aplicado
+  const allOrgs = CFG[tab].data().filter(o=>o.lat&&o.lon);
+  const filtOrgs = orgs.filter(o=>o.lat&&o.lon);
+  pintarPuntos(allOrgs, filtOrgs);
+
+  const area = document.getElementById('pcards');
+  if (!orgs.length) {
+    area.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><h3>Sin resultados</h3><p>Prueba con otros filtros</p></div>`;
+    return;
+  }
+
+  area.innerHTML = orgs.map(o => {
+    const gratis = o.cos&&o.cos.toLowerCase().includes('sin costo');
+    const discsT = (o.discs||[]).map(d=>`<span class="tag t-d">${d}</span>`).join('');
+    const secT   = o.sec&&o.sec!=='nan'?`<span class="tag t-s">${o.sec.slice(0,15)}</span>`:'';
+    const cosT   = o.cos&&o.cos!=='nan'?`<span class="tag ${gratis?'t-gr':'t-pg'}">${gratis?'Sin costo':o.cos.slice(0,18)}</span>`:'';
+    const dimT   = (o.eje||o.dim)&&(o.eje||o.dim)!=='nan'?`<span class="tag t-dim">${(o.eje||o.dim).slice(0,18)}</span>`:'';
+    const qT     = o.cupos&&o.cupos!=='nan'?`<span class="tag t-q">👥 ${o.cupos.slice(0,14)}</span>`:'';
+    const niv    = o.niv&&o.niv!=='nan';
+    const ncls   = niv&&o.niv.toLowerCase().includes('alto')?'np-A':niv&&o.niv.toLowerCase().includes('medio')?'np-M':'np-B';
+    const prog   = o.programa&&o.programa!=='nan'?`<div class="cprog">${o.programa.slice(0,55)}</div>`:'';
+    return `<div class="ocard" data-id="${o.id}" onclick='abrirModal(${JSON.stringify(JSON.stringify(o))})'>
+      <div class="cn">${o.n}</div>
+      ${o.d&&o.d!=='nan'?`<div class="cd">📍 ${o.d}</div>`:''}
+      ${prog}
+      <div class="tags">${discsT}${secT}${cosT}${dimT}${qT}</div>
+      <div class="cft">
+        <span class="ctel">${o.tel&&o.tel!=='nan'?'📞 '+o.tel:''}</span>
+        <span style="display:flex;align-items:center;gap:3px">
+          ${niv?`<span class="np ${ncls}">${o.niv}</span>`:''}
+          ${o.lat&&o.lon?'<span style="font-size:11px;color:#94a3b8" title="Geolocalizado">📌</span>':''}
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VOLVER
+// ═══════════════════════════════════════════════════════════
+function volverVista() {
+  zona = null; orgKey = null; zonaLayer = null; zonaOrgs = [];
+  if (mapa) {
+    mapa.setView([6.2518,-75.5636],12);
+    layerGeo.eachLayer(l => layerGeo.resetStyle(l));
+    pintarPuntos(CFG[tab].data().filter(o=>o.lat&&o.lon));
+    pintarLabels();
+  }
+  document.getElementById('ptitulo').textContent = 'Medellín — Vista general';
+  document.getElementById('psub').textContent    = 'Selecciona una zona del mapa';
+  document.getElementById('btn-back').style.display = 'none';
+  document.getElementById('pkpis').classList.remove('vis');
+  document.getElementById('pfiltros').classList.remove('vis');
+  document.getElementById('mhint').classList.remove('hide');
+  document.getElementById('pcards').innerHTML = `<div class="empty"><div class="empty-ico">🗺</div><h3>Selecciona una zona</h3><p>Haz clic en cualquier comuna<br>o corregimiento del mapa</p></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CAMBIAR TAB
+// ═══════════════════════════════════════════════════════════
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('.mtab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`mt-${t}`).classList.add('active');
+  const esProd = t === 'prod';
+  document.getElementById('lay-mapa').style.display = esProd ? 'none' : 'flex';
+  document.getElementById('lay-prod').style.display = esProd ? 'flex' : 'none';
+  if (!esProd) {
+    volverVista();
+    if (layerGeo) layerGeo.eachLayer(l => layerGeo.resetStyle(l));
+    actualizarLeyenda();
+    setTimeout(() => mapa && mapa.invalidateSize(), 50);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PRODUCTOS
+// ═══════════════════════════════════════════════════════════
+function initProductos() {
+  const cats  = [...new Set(PRODUCTOS.map(p=>p.cat).filter(Boolean))];
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  const all = document.createElement('div');
+  all.className='chip active'; all.textContent=`Todos (${PRODUCTOS.length})`;
+  all.onclick=()=>filtrarProd(''); chips.appendChild(all);
+  cats.forEach(cat => {
+    const cnt=PRODUCTOS.filter(p=>p.cat===cat).length;
+    const d=document.createElement('div');
+    d.className='chip';
+    d.textContent=`${cat.split(' ').slice(0,4).join(' ')} (${cnt})`;
+    d.onclick=()=>filtrarProd(cat);
+    chips.appendChild(d);
+  });
+  filtrarProd('');
+}
+function filtrarProd(cat) {
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active',cat===''?i===0:c.textContent.startsWith(cat.split(' ').slice(0,4).join(' '))));
+  const items=cat?PRODUCTOS.filter(p=>p.cat===cat):PRODUCTOS;
+  document.getElementById('pgrid').innerHTML=items.map(p=>`
+    <div class="pcard">
+      <div class="pcat">${p.cat}</div>
+      <div class="pprov">${p.prov}</div>
+      <div class="poferta">${p.oferta}</div>
+      <div class="pcontacto">📞 ${p.contacto||'Sin contacto'}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════
+function abrirModal(oStr) {
+  const o  = JSON.parse(oStr);
+  const c  = CFG[o.tipo] || CFG.disc;
+  const lb = o.tipo==='discapacidad'?'♿ Discapacidad':o.tipo==='cuidado'?'💚 Oferta de cuidados':'🤝 Mesa de cuidado';
+  document.getElementById('mbadge').textContent  = lb;
+  document.getElementById('mbadge').style.cssText = `background:${c.bg};color:${c.c}`;
+  document.getElementById('mn').textContent = o.n;
+  const campos = [
+    ['📍 Dirección',   o.d],['🏙 Comuna',o.c],['🏘 Barrio',o.barrio],
+    ['♿ Discapacidades',(o.discs||[]).join(', ')],['📋 Programa',o.programa],
+    ['📌 Dimensión PP',o.eje||o.dim],['🏢 Sector',o.sec],['💰 Costo',o.cos],
+    ['👥 Cupos',o.cupos],['🌍 Cobertura',o.cobertura],['👤 Población',o.poblacion],
+    ['📋 Requisitos',o.req],['🎯 Servicios',o.srv?o.srv.replace(/\n/g,', '):null],
+    ['📞 Teléfono',o.tel],['✉ Email/Web',o.email],['🔗 Nivel PP',o.niv],
+  ];
+  document.getElementById('mbody').innerHTML = campos
+    .filter(([,v])=>v&&String(v).trim()&&v!=='nan')
+    .map(([l,v])=>`<div class="mc"><span class="mcl">${l}</span><span class="mcv">${v}</span></div>`)
+    .join('');
+  document.getElementById('modal').classList.add('open');
+}
+function cerrar(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)cerrar();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar();});
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load',()=>{setTimeout(initMapa,100);initProductos();});
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciar sesión — Mapa de Oferta · EPI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+:root{
+  --azul:#1a3a5c;--azul-med:#2563eb;--azul-cl:#bfdbfe;--azul-xs:#eff6ff;
+  --gris:#f1f5f9;--borde:#e2e8f0;--txt:#0f172a;--txt2:#64748b;
+  --rojo:#dc2626;--rojo-bg:#fee2e2;--verde:#15803d;--verde-bg:#dcfce7;
+}
+html,body{height:100%}
+/* Evita que el usuario escriba mientras se resuelve sesión / redirección */
+html.auth-checking .card{pointer-events:none;opacity:.92}
+html.auth-checking body{cursor:wait}
+body{
+  /* Fondo fijo (sin gradiente animando capas; en algunas GPUs “titila” con el caret del input) */
+  background:#152b47;
+  display:flex;align-items:center;justify-content:center;padding:20px;color:var(--txt);
+}
+.card{
+  background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);
+  contain:layout paint;
+}
+.logo{
+  width:60px;height:60px;background:var(--azul-med);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  margin:0 auto 16px;color:white;
+}
+h1{font-size:20px;font-weight:700;color:var(--azul);text-align:center;margin-bottom:6px}
+.sub{font-size:13px;color:var(--txt2);text-align:center;margin-bottom:28px}
+label{display:block;font-size:12px;font-weight:600;color:var(--azul);margin-bottom:6px;margin-top:14px}
+input{
+  width:100%;padding:11px 14px;border:1px solid var(--borde);border-radius:9px;
+  font-size:14px;color:var(--txt);
+  transition:border-color .12s ease, box-shadow .12s ease;
+}
+input:focus{outline:none;border-color:var(--azul-med);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+button{
+  width:100%;padding:12px;background:var(--azul-med);color:white;border:none;
+  border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;margin-top:22px;
+  transition:background-color .12s ease, opacity .12s ease;
+}
+button:hover:not(:disabled){background:var(--azul)}
+button:disabled{opacity:.6;cursor:not-allowed}
+.msg{
+  margin-top:16px;padding:10px 13px;border-radius:8px;font-size:12px;
+  display:none;line-height:1.5;
+}
+.msg.error{display:block;background:var(--rojo-bg);color:var(--rojo);border:1px solid #fecaca}
+.msg.ok   {display:block;background:var(--verde-bg);color:var(--verde);border:1px solid #bbf7d0}
+.foot{font-size:11px;color:var(--txt2);text-align:center;margin-top:22px;line-height:1.5}
+.spinner{
+  display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);
+  border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;margin-right:7px;
+  vertical-align:-2px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">♿</div>
+  <h1>Mapa de Oferta Institucional</h1>
+  <p class="sub">Discapacidad y Cuidado · Medellín</p>
+
+  <form id="login-form" novalidate>
+    <label for="login-id">Correo o cédula</label>
+    <input type="text" id="login-id" required autocomplete="username" placeholder="correo@gmail.com o número de documento">
+
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" required autocomplete="current-password" placeholder="Tu contraseña">
+
+    <button type="submit" id="btn">Iniciar sesión</button>
+
+    <div class="msg" id="msg"></div>
+  </form>
+
+  <p class="foot">
+    Puedes entrar con cualquier correo registrado o con tu cédula si el administrador la asoció a tu cuenta.<br>
+    Si necesitas acceso, contacta al administrador.
+  </p>
+</div>
+
+<script type="module">
+import { supabase, obtenerPerfil } from './js/supabase-client.js';
+
+document.documentElement.classList.add('auth-checking');
+
+// El cliente Supabase refresca el token en segundo plano (intervalo). Eso escribe en
+// localStorage y en algunos equipos/navegadores provoca parpadeos del caret o del panel.
+// En la página de login no hace falta; al ir a mapa/admin se carga de nuevo el cliente.
+await supabase.auth.stopAutoRefresh().catch(() => {});
+
+const $form = document.getElementById('login-form');
+const $btn  = document.getElementById('btn');
+const $msg  = document.getElementById('msg');
+
+function mostrarMsg(texto, tipo = 'error') {
+  $msg.textContent = texto;
+  $msg.className   = `msg ${tipo}`;
+}
+
+async function redirigirSegunRol(perfilPrecargado) {
+  const perfil = perfilPrecargado ?? await obtenerPerfil();
+  if (!perfil) return;
+
+  const params  = new URLSearchParams(window.location.search);
+  const next    = params.get('next');
+
+  if (next && next.startsWith('/')) {
+    window.location.href = next;
+  } else {
+    window.location.href = perfil.rol === 'admin' ? '/admin.html' : '/mapa.html';
+  }
+}
+
+// Sesión ya iniciada → redirige; sesión rota (sin perfil) → se limpia y se queda en login
+(async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const perfil = await obtenerPerfil();
+      if (!perfil) {
+        await supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+      await redirigirSegunRol(perfil);
+    }
+  } catch (e) {
+    console.warn('Comprobación de sesión:', e);
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch { /* ignore */ }
+  } finally {
+    document.documentElement.classList.remove('auth-checking');
+  }
+})();
+
+async function correoParaLogin(identificador) {
+  const t = identificador.trim();
+  if (t.includes('@')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) {
+      throw new Error('Escribe un correo válido.');
+    }
+    return t.toLowerCase();
+  }
+  const res = await fetch('/api/resolver-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identificador: t }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.email) {
+    throw new Error(j.error || 'No hay cuenta con ese documento o está inactiva.');
+  }
+  return j.email;
+}
+
+$form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const identificador = document.getElementById('login-id').value.trim();
+  const password      = document.getElementById('password').value;
+
+  $btn.disabled  = true;
+  $btn.innerHTML = '<span class="spinner"></span>Verificando…';
+  $msg.className = 'msg';
+
+  let emailLogin;
+  try {
+    emailLogin = await correoParaLogin(identificador);
+  } catch (err) {
+    mostrarMsg(err.message || 'No se pudo validar el usuario.');
+    $btn.disabled  = false;
+    $btn.innerHTML = 'Iniciar sesión';
+    return;
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({ email: emailLogin, password });
+
+  if (error) {
+    const traducciones = {
+      'Invalid login credentials': 'Correo/cédula o contraseña incorrectos.',
+      'Email not confirmed':       'Tu correo aún no ha sido confirmado.',
+    };
+    mostrarMsg(traducciones[error.message] || error.message);
+    $btn.disabled  = false;
+    $btn.innerHTML = 'Iniciar sesión';
+    return;
+  }
+
+  mostrarMsg('Acceso correcto. Redirigiendo…', 'ok');
+  await redirigirSegunRol();
+});
+</script>
+</body>
+</html>

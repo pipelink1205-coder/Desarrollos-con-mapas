@@ -1,0 +1,24 @@
+{
+  "name": "mapa-oferta-epi",
+  "version": "1.0.0",
+  "description": "Mapa de oferta institucional de discapacidad y cuidado en Medellín, con autenticación y panel de administración (EPI).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/inject-config.mjs",
+    "migrar": "node scripts/migrar-csv.mjs",
+    "crear-admin": "node scripts/crear-admin.mjs",
+    "dev": "vercel dev",
+    "dev:local": "node scripts/local-dev.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "csv-parse": "^5.5.6"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

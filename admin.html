@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — Mapa de Oferta · EPI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+:root{
+  --azul:#1a3a5c;--azul-med:#2563eb;--azul-cl:#bfdbfe;--azul-xs:#eff6ff;
+  --gris:#f1f5f9;--borde:#e2e8f0;--txt:#0f172a;--txt2:#64748b;--blanco:#fff;
+  --rojo:#dc2626;--rojo-bg:#fee2e2;--verde:#15803d;--verde-bg:#dcfce7;
+  --naranja:#d97706;--naranja-bg:#fef3c7;
+}
+html,body{height:100%}
+body{background:#f8fafc;color:var(--txt);font-size:13px;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--azul);color:white;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.hdr-logo{width:34px;height:34px;background:var(--azul-med);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.hdr h1{font-size:14px;font-weight:600}
+.hdr p{font-size:10px;opacity:.6;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.hdr-info{font-size:11px;text-align:right;line-height:1.3}
+.hdr-info b{display:block;font-size:12px}
+.hdr-info span{opacity:.6;font-size:10px}
+.hdr-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500;text-decoration:none;display:inline-block}
+.hdr-btn:hover{background:rgba(255,255,255,.2)}
+
+/* TABS */
+.tabs{display:flex;background:var(--blanco);border-bottom:1px solid var(--borde);padding:0 20px;flex-shrink:0}
+.tab{padding:14px 18px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent}
+.tab.active{color:var(--azul-med);border-bottom-color:var(--azul-med)}
+.tab:hover:not(.active){color:var(--azul);background:var(--gris)}
+
+/* CONTENIDO */
+.content{flex:1;padding:20px;overflow:auto}
+
+/* TOOLBAR */
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.toolbar-l{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:1}
+.search{padding:8px 12px;border:1px solid var(--borde);border-radius:7px;font-size:13px;min-width:240px;flex:1;max-width:380px}
+.search:focus{outline:none;border-color:var(--azul-med);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.select{padding:8px 12px;border:1px solid var(--borde);border-radius:7px;font-size:13px;background:white;cursor:pointer}
+.btn{padding:8px 14px;border:none;border-radius:7px;font-size:12px;cursor:pointer;font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--azul-med);color:white}
+.btn-primary:hover{background:var(--azul);transform:translateY(-1px)}
+.btn-danger{background:var(--rojo);color:white}
+.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:var(--gris);color:var(--txt)}
+.btn-ghost:hover{background:#e2e8f0}
+.btn-success{background:var(--verde);color:white}
+.btn-success:hover{background:#166534}
+
+/* TABLA */
+.tabla-wrap{background:white;border:1px solid var(--borde);border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--gris);padding:10px 12px;text-align:left;font-weight:600;color:var(--azul);font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--borde)}
+td{padding:10px 12px;border-bottom:1px solid var(--borde);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--azul-xs)}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.badge-disc{background:#dbeafe;color:#1e40af}
+.badge-cuid{background:#d1fae5;color:#065f46}
+.badge-mesa{background:#fef3c7;color:#a16207}
+.badge-prod{background:#ede9fe;color:#7c3aed}
+.badge-admin{background:var(--rojo-bg);color:var(--rojo)}
+.badge-consulta{background:var(--gris);color:var(--txt2)}
+.badge-activo{background:var(--verde-bg);color:var(--verde)}
+.badge-inactivo{background:var(--rojo-bg);color:var(--rojo)}
+.tabla-acciones{display:flex;gap:5px;flex-wrap:nowrap}
+.icon-btn{padding:5px 9px;border:1px solid var(--borde);border-radius:5px;background:white;cursor:pointer;font-size:11px;color:var(--txt2)}
+.icon-btn:hover{background:var(--azul-xs);color:var(--azul-med);border-color:var(--azul-med)}
+.icon-btn.danger:hover{background:var(--rojo-bg);color:var(--rojo);border-color:var(--rojo)}
+
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.mbg.open{display:flex}
+.modal{background:white;border-radius:12px;width:100%;max-width:760px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.modal-hdr{padding:16px 22px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-hdr h2{font-size:15px;font-weight:600;color:var(--azul)}
+.modal-x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--txt2);line-height:1;padding:4px 8px;border-radius:5px}
+.modal-x:hover{background:var(--gris)}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-foot{padding:13px 22px;border-top:1px solid var(--borde);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:var(--gris)}
+
+/* FORMULARIO */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--azul);margin-bottom:5px}
+.field input,.field select,.field textarea{
+  width:100%;padding:9px 12px;border:1px solid var(--borde);border-radius:7px;font-size:13px;color:var(--txt);
+  font-family:inherit;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--azul-med);box-shadow:0 0 0 3px rgba(37,99,235,.1)
+}
+.field textarea{resize:vertical;min-height:60px}
+.field .hint{font-size:10px;color:var(--txt2);margin-top:3px}
+.fieldset-titulo{font-size:11px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.4px;margin:8px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--borde);grid-column:1/-1}
+.checks{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.check{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
+.check input{width:auto}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--azul);color:white;padding:12px 18px;border-radius:9px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;animation:slideIn .3s ease;max-width:380px}
+.toast.ok{background:var(--verde)}
+.toast.error{background:var(--rojo)}
+.toast.show{display:block}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* EMPTY */
+.empty{padding:60px 20px;text-align:center;color:var(--txt2)}
+.empty-ico{font-size:46px;margin-bottom:12px;opacity:.5}
+.empty h3{font-size:15px;color:var(--azul);margin-bottom:6px}
+
+/* LOADING */
+.loading{padding:60px 20px;text-align:center;color:var(--txt2);font-size:13px}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--borde);border-top-color:var(--azul-med);border-radius:50%;animation:spin .9s linear infinite;vertical-align:-4px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PAGE */
+.page{display:none}
+.page.active{display:block}
+
+@media(max-width:720px){
+  .form-grid{grid-template-columns:1fr}
+  .hdr-info{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-logo">⚙️</div>
+    <div>
+      <h1>Panel de Administración</h1>
+      <p>Mapa de Oferta Institucional · EPI Medellín</p>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <div class="hdr-info">
+      <b id="user-nombre">…</b>
+      <span id="user-email"></span>
+    </div>
+    <a class="hdr-btn" href="/mapa.html">🗺 Ver ofertas</a>
+    <button class="hdr-btn" id="btn-logout">Salir</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-page="instituciones">🏛 Instituciones</button>
+  <button class="tab"        data-page="productos">🦽 Productos</button>
+  <button class="tab"        data-page="usuarios">👥 Usuarios</button>
+</nav>
+
+<main class="content">
+
+  <!-- ============== INSTITUCIONES ============== -->
+  <section class="page active" id="page-instituciones">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <input class="search" id="busc-inst"   placeholder="🔍 Buscar por nombre, dirección, comuna…">
+        <select class="select" id="filt-cat-inst">
+          <option value="">Todas las categorías</option>
+          <option value="discapacidad">♿ Discapacidad</option>
+          <option value="cuidado">💚 Cuidado</option>
+          <option value="mesa">🤝 Mesa</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-nueva-inst">+ Nueva institución</button>
+    </div>
+    <div class="tabla-wrap" id="tabla-inst-wrap">
+      <div class="loading"><span class="spinner"></span>Cargando instituciones…</div>
+    </div>
+  </section>
+
+  <!-- ============== PRODUCTOS ============== -->
+  <section class="page" id="page-productos">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <input class="search" id="busc-prod" placeholder="🔍 Buscar producto, proveedor…">
+      </div>
+      <button class="btn btn-primary" id="btn-nuevo-prod">+ Nuevo producto</button>
+    </div>
+    <div class="tabla-wrap" id="tabla-prod-wrap">
+      <div class="loading"><span class="spinner"></span>Cargando productos…</div>
+    </div>
+  </section>
+
+  <!-- ============== USUARIOS ============== -->
+  <section class="page" id="page-usuarios">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <input class="search" id="busc-user" placeholder="🔍 Buscar por nombre o documento…">
+      </div>
+      <button class="btn btn-primary" id="btn-nuevo-user">+ Nuevo usuario</button>
+    </div>
+    <div class="tabla-wrap" id="tabla-user-wrap">
+      <div class="loading"><span class="spinner"></span>Cargando usuarios…</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== MODAL: institución ===== -->
+<div class="mbg" id="modal-inst">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2 id="modal-inst-titulo">Nueva institución</h2>
+      <button class="modal-x" data-close="modal-inst">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-inst">
+        <input type="hidden" id="inst-id">
+        <div class="form-grid">
+
+          <div class="fieldset-titulo">Identificación</div>
+
+          <div class="field">
+            <label>Categoría *</label>
+            <select id="inst-categoria" required>
+              <option value="">— elegir —</option>
+              <option value="discapacidad">♿ Discapacidad</option>
+              <option value="cuidado">💚 Cuidado</option>
+              <option value="mesa">🤝 Mesa de cuidado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tipo de organización</label>
+            <input type="text" id="inst-tipo_organizacion" placeholder="Pública, Privada, Mixta, Comunitaria…">
+          </div>
+          <div class="field full">
+            <label>Nombre *</label>
+            <input type="text" id="inst-nombre" required>
+          </div>
+          <div class="field full">
+            <label>Programa o proyecto</label>
+            <input type="text" id="inst-programa">
+          </div>
+
+          <div class="fieldset-titulo">Ubicación</div>
+          <div class="field full">
+            <label>Dirección</label>
+            <input type="text" id="inst-direccion">
+          </div>
+          <div class="field">
+            <label>Comuna</label>
+            <input type="text" id="inst-comuna" placeholder="Ej: 10 - LA CANDELARIA">
+          </div>
+          <div class="field">
+            <label>Barrio</label>
+            <input type="text" id="inst-barrio">
+          </div>
+          <div class="field">
+            <label>Latitud</label>
+            <input type="number" step="0.0000001" id="inst-latitud" placeholder="6,2518">
+          </div>
+          <div class="field">
+            <label>Longitud</label>
+            <input type="number" step="0.0000001" id="inst-longitud" placeholder="-75,5636">
+          </div>
+
+          <div class="fieldset-titulo">Contacto</div>
+          <div class="field">
+            <label>Teléfono</label>
+            <input type="text" id="inst-telefono">
+          </div>
+          <div class="field">
+            <label>Email / Página web</label>
+            <input type="text" id="inst-email">
+          </div>
+          <div class="field full">
+            <label>Persona de contacto</label>
+            <input type="text" id="inst-contacto_persona">
+          </div>
+
+          <div class="fieldset-titulo">Detalle de la oferta</div>
+          <div class="field full">
+            <label>Servicios ofrecidos</label>
+            <textarea id="inst-servicios"></textarea>
+          </div>
+          <div class="field">
+            <label>Costo</label>
+            <input type="text" id="inst-costo" placeholder="Ej: Sin costo, Según tarifa">
+          </div>
+          <div class="field">
+            <label>Cupos</label>
+            <input type="text" id="inst-cupos">
+          </div>
+          <div class="field">
+            <label>Cobertura</label>
+            <input type="text" id="inst-cobertura">
+          </div>
+          <div class="field">
+            <label>Población objetivo</label>
+            <input type="text" id="inst-poblacion_objetivo">
+          </div>
+          <div class="field full">
+            <label>Requisitos</label>
+            <textarea id="inst-requisitos"></textarea>
+          </div>
+
+          <div class="fieldset-titulo">Política pública</div>
+          <div class="field">
+            <label>Sector</label>
+            <input type="text" id="inst-sector">
+          </div>
+          <div class="field">
+            <label>Nivel de relacionamiento PP</label>
+            <input type="text" id="inst-nivel_relacionamiento_pp" placeholder="Alto, Medio, Bajo">
+          </div>
+          <div class="field full">
+            <label>Eje Política Pública 1</label>
+            <input type="text" id="inst-eje_pp_1">
+          </div>
+          <div class="field full">
+            <label>Dimensión PP</label>
+            <input type="text" id="inst-dimension_pp">
+          </div>
+
+          <div class="fieldset-titulo">Discapacidad <span style="font-weight:400;text-transform:none;color:var(--txt2);font-size:10px;letter-spacing:0">(solo aplica si la categoría es "Discapacidad")</span></div>
+          <div class="field full">
+            <label>Tipos de discapacidad</label>
+            <input type="text" id="inst-tipos_discapacidad" placeholder="Separa con comas: Intelectual, Fisica, Visual">
+            <div class="hint">Tipos comunes: Intelectual, Fisica, Mental, Visual, Auditiva, Múltiple</div>
+          </div>
+          <div class="field full">
+            <div class="checks">
+              <label class="check"><input type="checkbox" id="inst-atiende_persona_discapacidad"> Atiende persona con discapacidad</label>
+              <label class="check"><input type="checkbox" id="inst-atiende_familia"> Atiende familia</label>
+              <label class="check"><input type="checkbox" id="inst-atiende_publico_general"> Público en general</label>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-inst">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-inst">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: producto ===== -->
+<div class="mbg" id="modal-prod">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr">
+      <h2 id="modal-prod-titulo">Nuevo producto</h2>
+      <button class="modal-x" data-close="modal-prod">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-prod">
+        <input type="hidden" id="prod-id">
+        <div class="form-grid">
+          <div class="field">
+            <label>Categoría *</label>
+            <input type="text" id="prod-categoria" required placeholder="Ej: MOVILIDAD, AUDITIVO">
+          </div>
+          <div class="field">
+            <label>Proveedor *</label>
+            <input type="text" id="prod-proveedor" required>
+          </div>
+          <div class="field full">
+            <label>Oferta / descripción</label>
+            <textarea id="prod-oferta"></textarea>
+          </div>
+          <div class="field full">
+            <label>Contacto</label>
+            <input type="text" id="prod-contacto">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-prod">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-prod">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: usuario ===== -->
+<div class="mbg" id="modal-user">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <h2 id="modal-user-titulo">Nuevo usuario</h2>
+      <button class="modal-x" data-close="modal-user">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-user">
+        <input type="hidden" id="user-id">
+        <div class="form-grid">
+          <div class="field full">
+            <label>Nombre completo *</label>
+            <input type="text" id="user-nombre-input" required>
+          </div>
+          <div class="field full" id="field-email">
+            <label>Correo electrónico *</label>
+            <input type="email" id="user-email-input" required placeholder="cualquier correo válido">
+          </div>
+          <div class="field full" id="field-cedula">
+            <label>Cédula / documento</label>
+            <input type="text" id="user-cedula-input" inputmode="numeric" autocomplete="off" placeholder="Opcional: permite iniciar sesión con el número sin usar el correo">
+          </div>
+          <div class="field full" id="field-password">
+            <label>Contraseña temporal *</label>
+            <input type="text" id="user-password-input" required minlength="5">
+            <div class="hint" id="hint-password-user">Consulta: mínimo 5 caracteres. Administrador: mínimo 8. El usuario podrá cambiarla luego.</div>
+          </div>
+          <div class="field">
+            <label>Rol *</label>
+            <select id="user-rol-input" required>
+              <option value="consulta">Consulta (solo ver)</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <select id="user-activo-input">
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-user">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-user">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="/js/admin.js"></script>
+</body>
+</html>
