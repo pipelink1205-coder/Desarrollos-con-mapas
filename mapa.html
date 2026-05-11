@@ -384,6 +384,53 @@ function claveComunaComparable(s) {
   return t;
 }
 
+/** Número oficial de comuna/corregimiento si viene en el texto (p. ej. «COMUNA 11», «11 - Laureles»). */
+function extraerNumeroComunaMedellin(s) {
+  const t = claveComunaComparable(s);
+  if (!t) return null;
+  let m = t.match(/^(\d{1,2})\b/);
+  if (m) return parseInt(m[1], 10);
+  m = t.match(/\bCOMUNA\s+(\d{1,2})\b/) || t.match(/\bCOM\s+(\d{1,2})\b/);
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
+/**
+ * Clave GeoJSON (normalizada) a la que pertenece una org. de discapacidad para el conteo de intensidad.
+ * Misma prioridad que en seleccionar(): texto oficial → número en nombre → punto en polígono.
+ */
+function claveGeoAsignadaDisc(o, features) {
+  const geoKeys = new Set(
+    features.map((f) => claveComunaComparable(f.properties.org_key || f.properties.nombre))
+  );
+  const nk = claveComunaComparable(o.c);
+  if (nk && geoKeys.has(nk)) return nk;
+
+  const num = extraerNumeroComunaMedellin(o.c);
+  if (num != null) {
+    let hit = features.find((f) => f.properties.tipo === 'comuna' && f.properties.numero === num);
+    if (!hit) {
+      hit = features.find((f) => f.properties.tipo === 'corregimiento' && f.properties.numero === num);
+    }
+    if (hit) {
+      return claveComunaComparable(hit.properties.org_key || hit.properties.nombre);
+    }
+  }
+
+  if (o.lat != null && o.lon != null) {
+    const lat = Number(o.lat);
+    const lon = Number(o.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      for (const f of features) {
+        if (f.geometry && geoContainsPoint(lat, lon, f.geometry)) {
+          return claveComunaComparable(f.properties.org_key || f.properties.nombre);
+        }
+      }
+    }
+  }
+  return nk || null;
+}
+
 /** Punto en polígono GeoJSON (Polygon / MultiPolygon). Respaldo si `c` no coincide con org_key. */
 function ringContains(lat, lon, ring) {
   if (!ring || ring.length < 3) return false;
@@ -443,14 +490,14 @@ async function cargarDatos() {
     throw new Error('No se pudo cargar /data/comunas.geojson. Asegúrate de subir el archivo al proyecto.');
   }
 
-  // Contadores por comuna (misma clave normalizada que en seleccionar)
+  // Contadores por comuna (alineado con seleccionar: texto, nº en campo comuna, o lat/lon en polígono)
   if (geoRes.features) {
     const conteo = {};
-    (disc.data || []).forEach(o => {
-      const nk = claveComunaComparable(o.c);
-      if (nk) conteo[nk] = (conteo[nk] || 0) + 1;
+    (disc.data || []).forEach((o) => {
+      const gk = claveGeoAsignadaDisc(o, geoRes.features);
+      if (gk) conteo[gk] = (conteo[gk] || 0) + 1;
     });
-    geoRes.features.forEach(f => {
+    geoRes.features.forEach((f) => {
       const nk = claveComunaComparable(f.properties.org_key || f.properties.nombre);
       f.properties.cnt = conteo[nk] || 0;
     });

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<!-- auth-checking desde el primer frame: evita el parpadeo claro→tenue→claro
+     mientras carga el módulo y Supabase comprueba sesión (más visible en local). -->
+<html lang="es" class="auth-checking">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,6 +103,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
 
   let supabase;
   let obtenerPerfil;
+  /** Evita ejecutar stopAutoRefresh si ya disparamos navegación a mapa/admin. */
+  let saliendoPorAuth = false;
   try {
     const m = await import('./js/supabase-client.js');
     supabase = m.supabase;
@@ -117,11 +121,26 @@ button:disabled{opacity:.6;cursor:not-allowed}
 
   document.documentElement.classList.add('auth-checking');
 
-  await supabase.auth.stopAutoRefresh().catch(() => {});
-
   function mostrarMsg(texto, tipo = 'error') {
     $msg.textContent = texto;
     $msg.className   = `msg ${tipo}`;
+  }
+
+  /** Evita saltar a mapa.html antes de que la sesión quede estable (reduce bucle index↔mapa en local). */
+  async function asegurarSesionListaParaNavegar() {
+    await supabase.auth.startAutoRefresh().catch(() => {});
+    for (let i = 0; i < 45; i++) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await new Promise((r) => setTimeout(r, 80));
+        const { data: { session: s2 } } = await supabase.auth.getSession();
+        if (s2?.access_token) return;
+      }
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    throw new Error(
+      'La sesión no quedó lista en el navegador antes de redirigir. Cierra otras pestañas del mapa, recarga (F5) e inténtalo de nuevo.'
+    );
   }
 
   async function redirigirSegunRol(perfilPrecargado) {
@@ -131,10 +150,16 @@ button:disabled{opacity:.6;cursor:not-allowed}
     const params  = new URLSearchParams(window.location.search);
     const next    = params.get('next');
 
+    await asegurarSesionListaParaNavegar();
+
+    // Pista para auth-guard: navegación reciente desde login / index.
+    sessionStorage.setItem('epi-auth-nav', String(Date.now()));
+
+    saliendoPorAuth = true;
     if (next && next.startsWith('/')) {
-      window.location.href = next;
+      window.location.assign(next);
     } else {
-      window.location.href = perfil.rol === 'admin' ? '/admin.html' : '/mapa.html';
+      window.location.assign(perfil.rol === 'admin' ? '/admin.html' : '/mapa.html');
     }
   }
 
@@ -187,7 +212,12 @@ button:disabled{opacity:.6;cursor:not-allowed}
       if (!perfil) {
         await supabase.auth.signOut({ scope: 'local' });
       } else {
-        await redirigirSegunRol(perfil);
+        try {
+          await redirigirSegunRol(perfil);
+        } catch (redirErr) {
+          console.error(redirErr);
+          bootErr(redirErr.message || 'No se pudo abrir el mapa. Recarga la página (F5).');
+        }
       }
     }
   } catch (e) {
@@ -197,6 +227,13 @@ button:disabled{opacity:.6;cursor:not-allowed}
     } catch { /* ignore */ }
   } finally {
     document.documentElement.classList.remove('auth-checking');
+  }
+
+  if (!saliendoPorAuth) {
+    const { data: { session: sPost } } = await supabase.auth.getSession();
+    if (!sPost) {
+      await supabase.auth.stopAutoRefresh().catch(() => {});
+    }
   }
 
   $form.addEventListener('submit', async (e) => {
@@ -255,7 +292,14 @@ button:disabled{opacity:.6;cursor:not-allowed}
       return;
     }
 
-    await redirigirSegunRol(perfil);
+    try {
+      await redirigirSegunRol(perfil);
+    } catch (redirErr) {
+      console.error(redirErr);
+      mostrarMsg(redirErr.message || 'No se pudo abrir el mapa. Recarga la página (F5).');
+      $btn.disabled  = false;
+      $btn.innerHTML = 'Iniciar sesión';
+    }
   });
 })();
 </script>
