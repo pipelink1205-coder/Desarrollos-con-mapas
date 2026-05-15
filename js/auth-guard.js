@@ -64,9 +64,10 @@ async function esperarPerfil(msTotal) {
  * Protege la página actual.
  * @param {Object} opciones
  * @param {boolean} opciones.requiereAdmin - Si true, solo deja entrar a admins.
+ * @param {string[]|null} opciones.rolesPermitidos - Si se indica (ej. ['admin','consulta']), el rol del perfil debe estar en la lista.
  * @returns {Promise<{session, perfil}>} - Datos del usuario autenticado.
  */
-export async function requireAuth({ requiereAdmin = false } = {}) {
+export async function requireAuth({ requiereAdmin = false, rolesPermitidos = null } = {}) {
   const extendido = shouldExtendAuthWait();
   const msSesion = extendido ? 12000 : 5000;
   const msPerfil = extendido ? 12000 : 5000;
@@ -97,7 +98,13 @@ export async function requireAuth({ requiereAdmin = false } = {}) {
       return new Promise(() => {});
     }
 
-    if (requiereAdmin && perfil.rol !== 'admin') {
+    if (rolesPermitidos?.length) {
+      if (!rolesPermitidos.includes(perfil.rol)) {
+        alert('No tienes permisos para acceder a esta página.');
+        window.location.href = '/mapa.html';
+        return new Promise(() => {});
+      }
+    } else if (requiereAdmin && perfil.rol !== 'admin') {
       alert('No tienes permisos para acceder a esta página.');
       window.location.href = '/mapa.html';
       return new Promise(() => {});

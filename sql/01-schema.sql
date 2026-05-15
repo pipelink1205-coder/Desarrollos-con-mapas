@@ -58,6 +58,7 @@ CREATE TABLE public.instituciones (
 
   -- Ubicación
   direccion                   TEXT,
+  direccion_complemento       TEXT,
   direccion_contrastada       TEXT,
   distrito                    TEXT,
   otro_municipio              TEXT,
@@ -196,7 +197,14 @@ CREATE OR REPLACE VIEW public.v_disc_orgs AS
 SELECT
   id,
   nombre               AS n,
-  direccion            AS d,
+  CASE
+    WHEN nullif(trim(coalesce(direccion_complemento, '')), '') IS NOT NULL
+         AND nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion) || ' · ' || trim(direccion_complemento)
+    WHEN nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion)
+    ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
+  END                  AS d,
   COALESCE(latitud_verdadera, latitud)   AS lat,
   COALESCE(longitud_verdadera, longitud) AS lon,
   comuna               AS c,
@@ -224,7 +232,14 @@ CREATE OR REPLACE VIEW public.v_cuid_orgs AS
 SELECT
   id,
   nombre               AS n,
-  direccion            AS d,
+  CASE
+    WHEN nullif(trim(coalesce(direccion_complemento, '')), '') IS NOT NULL
+         AND nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion) || ' · ' || trim(direccion_complemento)
+    WHEN nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion)
+    ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
+  END                  AS d,
   COALESCE(latitud_verdadera, latitud)   AS lat,
   COALESCE(longitud_verdadera, longitud) AS lon,
   comuna               AS c,
@@ -250,7 +265,14 @@ CREATE OR REPLACE VIEW public.v_mesa_orgs AS
 SELECT
   id,
   nombre               AS n,
-  direccion            AS d,
+  CASE
+    WHEN nullif(trim(coalesce(direccion_complemento, '')), '') IS NOT NULL
+         AND nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion) || ' · ' || trim(direccion_complemento)
+    WHEN nullif(trim(coalesce(direccion, '')), '') IS NOT NULL
+      THEN trim(direccion)
+    ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
+  END                  AS d,
   COALESCE(latitud_verdadera, latitud)   AS lat,
   COALESCE(longitud_verdadera, longitud) AS lon,
   comuna               AS c,
@@ -271,6 +293,10 @@ SELECT
   'mesa'               AS tipo
 FROM public.instituciones
 WHERE categoria = 'mesa';
+
+ALTER VIEW public.v_disc_orgs SET (security_invoker = on);
+ALTER VIEW public.v_cuid_orgs SET (security_invoker = on);
+ALTER VIEW public.v_mesa_orgs SET (security_invoker = on);
 
 CREATE OR REPLACE VIEW public.v_productos AS
 SELECT

@@ -267,7 +267,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
       <b id="user-nombre">…</b>
       <span id="user-rol"></span>
     </div>
-    <a class="hdr-btn" id="btn-admin" href="/admin.html" style="display:none">Administrar</a>
+    <a class="hdr-btn" id="btn-admin" href="/admin.html" style="display:none">Panel</a>
     <button class="hdr-btn" id="btn-logout">Salir</button>
   </div>
 </div>
@@ -367,8 +367,11 @@ const { perfil } = await requireAuth();
 document.getElementById('user-nombre').textContent = perfil.nombre_completo;
 document.getElementById('user-rol').textContent    = perfil.rol === 'admin' ? 'Administrador' : 'Consulta';
 if (perfil.rol === 'admin') {
-  document.getElementById('btn-admin').style.display = 'inline-block';
+  document.getElementById('btn-admin').textContent = 'Administrar';
+} else {
+  document.getElementById('btn-admin').textContent = 'Directorio';
 }
+document.getElementById('btn-admin').style.display = 'inline-block';
 document.getElementById('btn-logout').addEventListener('click', cerrarSesion);
 
 // =====================================================================
