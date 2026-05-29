@@ -8,6 +8,15 @@
 import { requireAuth } from './auth-guard.js';
 import { supabase, cerrarSesion, obtenerSesion } from './supabase-client.js';
 import { geocodificarDireccion } from './geocodificador.js';
+import {
+  CODIGO_COMUNA_FUERA_MEDELLIN,
+  CODIGO_COMUNA_SIN_SEDE_FISICA,
+  DIRECCION_SIN_NOMENCLATURA,
+  coordenadasEnMedellin,
+  esComunaCodigoReporte,
+  esDireccionSinNomenclatura,
+} from './codigos-ubicacion.js';
+import { parseTelefonos, serializarTelefonos, textoTelefonos } from './telefonos.js';
 
 const { perfil, session } = await requireAuth({ rolesPermitidos: ['admin', 'consulta'] });
 const esAdmin = perfil.rol === 'admin';
@@ -61,6 +70,112 @@ if (!esAdmin) {
 // ---------------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
 
+/** Misma lógica que el mapa público: coordenadas válidas en Medellín (no aplica si sin_sede). */
+function institucionVisibleEnMapa(i) {
+  if (i.sin_sede) return false;
+  return coordenadasEnMedellin(i.latitud, i.longitud);
+}
+
+function tieneCoordenadasInst(i) {
+  return institucionVisibleEnMapa(i);
+}
+
+function parseCoordInput(id) {
+  const v = parseFloat(String($(id).value || '').replace(',', '.'));
+  return Number.isFinite(v) ? v : null;
+}
+
+/** Guarda URL con esquema https para enlaces en el mapa. */
+function normalizarPaginaWeb(s) {
+  const t = String(s || '').trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^www\./i.test(t)) return `https://${t}`;
+  if (t.includes('.') && !t.includes('@')) return `https://${t}`;
+  return t;
+}
+
+/** Al editar registros viejos con todo en email: separa URL si aún no hay pagina_web. */
+function rellenarContactoInstitucion(i) {
+  let email = i.email || '';
+  let web = i.pagina_web || '';
+  if (!web && email) {
+    const partes = String(email).split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
+    const urls = partes.filter((p) => /^https?:\/\//i.test(p) || /^www\./i.test(p) || (p.includes('.') && !p.includes('@')));
+    const mails = partes.filter((p) => p.includes('@'));
+    if (urls.length) {
+      web = urls[0];
+      email = mails.length ? mails.join(' ') : partes.filter((p) => p !== web).join(' ').trim() || null;
+    }
+  }
+  $('inst-email').value = email || '';
+  $('inst-pagina_web').value = web || '';
+}
+
+function syncSinSedeCamposInst() {
+  const sin = !!$('inst-sin_sede')?.checked;
+  const bloqueados = ['inst-latitud', 'inst-longitud'];
+  bloqueados.forEach((id) => {
+    const el = $(id);
+    if (el) el.disabled = sin;
+  });
+  const geoBtn = $('btn-geocodificar');
+  if (geoBtn) geoBtn.disabled = sin;
+  const comunaEl = $('inst-comuna');
+  if (comunaEl) {
+    if (sin) {
+      comunaEl.value = CODIGO_COMUNA_SIN_SEDE_FISICA;
+      comunaEl.readOnly = true;
+    } else {
+      comunaEl.readOnly = false;
+      if (esComunaCodigoReporte(comunaEl.value)) comunaEl.value = '';
+    }
+  }
+  const dirEl = $('inst-direccion');
+  const dirCompEl = $('inst-direccion_complemento');
+  if (dirEl) {
+    if (sin) {
+      dirEl.value = DIRECCION_SIN_NOMENCLATURA;
+      dirEl.readOnly = true;
+    } else {
+      dirEl.readOnly = false;
+      if (esDireccionSinNomenclatura(dirEl.value)) dirEl.value = '';
+    }
+  }
+  if (dirCompEl) {
+    if (sin) {
+      dirCompEl.value = '';
+      dirCompEl.disabled = true;
+    } else {
+      dirCompEl.disabled = false;
+    }
+  }
+  if (sin) {
+    $('inst-latitud').value = '';
+    $('inst-longitud').value = '';
+    const gw = $('geocod-mapa-wrap');
+    if (gw) gw.style.display = 'none';
+    resetGeocodUI();
+  }
+}
+
+/** Número de comuna/corregimiento en texto (alineado con mapa.html). */
+function numeroComunaEnTexto(s) {
+  if (esComunaCodigoReporte(s)) return null;
+  const t = String(s || '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .replace(/[\u2013\u2014\u2212]/g, '-')
+    .trim();
+  if (!t) return null;
+  let m = t.match(/^(\d{1,2})\b/);
+  if (m) return parseInt(m[1], 10);
+  m = t.match(/\bCOMUNA\s+(\d{1,2})\b/) || t.match(/\bCOM\s+(\d{1,2})\b/);
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
 // =====================================================================
 //  GEOCODIFICACIÓN AUTOMÁTICA (modal institución)
 // =====================================================================
@@ -110,6 +225,9 @@ function _inicializarMiniMapa(lat, lng) {
       const pos = _geocodMarker.getLatLng();
       $('inst-latitud').value  = pos.lat.toFixed(7);
       $('inst-longitud').value = pos.lng.toFixed(7);
+      if (!$('inst-sin_sede')?.checked && !coordenadasEnMedellin(pos.lat, pos.lng)) {
+        $('inst-comuna').value = CODIGO_COMUNA_FUERA_MEDELLIN;
+      }
     });
   }
 
@@ -173,7 +291,26 @@ async function _ejecutarGeocod() {
 
     $('inst-latitud').value  = r.lat.toFixed(7);
     $('inst-longitud').value = r.lng.toFixed(7);
-    if (r.comuna) $('inst-comuna').value = r.comuna;
+
+    const fueraMed = !coordenadasEnMedellin(r.lat, r.lng);
+    const comunaAntes = ($('inst-comuna')?.value || '').trim();
+    const numAntes = numeroComunaEnTexto(comunaAntes);
+    const numGeo = numeroComunaEnTexto(r.comuna);
+    let avisoComuna = '';
+
+    if (fueraMed) {
+      $('inst-comuna').value = CODIGO_COMUNA_FUERA_MEDELLIN;
+      avisoComuna =
+        ` · El punto quedó fuera del área de Medellín: comuna asignada «${CODIGO_COMUNA_FUERA_MEDELLIN}» (código para reportes).`;
+    } else if (r.comuna) {
+      if (numAntes != null && numGeo != null && numAntes !== numGeo) {
+        avisoComuna =
+          ` · Atención: el punto quedó en comuna ${numGeo} (${r.comuna}), no en la ${numAntes} que tenías. ` +
+          'No cambiamos el campo Comuna: revisa la dirección o arrastra el marcador. Si el punto es correcto, actualiza Comuna a mano.';
+      } else {
+        $('inst-comuna').value = r.comuna;
+      }
+    }
     if (r.barrio) $('inst-barrio').value = r.barrio;
     _mostrarBadgesAuto(true);
 
@@ -184,13 +321,13 @@ async function _ejecutarGeocod() {
         : 'baja — ajusta manualmente el marcador';
 
     const partesZona = [];
-    if (r.comuna) partesZona.push(`Comuna: ${r.comuna}`);
+    if (r.comuna) partesZona.push(`Comuna detectada: ${r.comuna}`);
     if (r.barrio) partesZona.push(`Barrio: ${r.barrio}`);
     const extraZona = partesZona.length ? ` · ${partesZona.join(' · ')}` : ' · Comuna/barrio: no detectados (revísalos a mano)';
 
     _estadoGeocod(
-      r.confianza === 'alta' ? 'ok' : 'parcial',
-      `${iconoConf} Coordenadas encontradas · Fuente: ${fuenteLabel} · Confianza: ${textoConf}${extraZona}`,
+      avisoComuna ? 'parcial' : (r.confianza === 'alta' ? 'ok' : 'parcial'),
+      `${iconoConf} Coordenadas guardadas · Fuente: ${fuenteLabel} · Confianza: ${textoConf}${extraZona}${avisoComuna}`,
     );
 
     const wrap = $('geocod-mapa-wrap');
@@ -208,12 +345,153 @@ document.addEventListener('click', (e) => {
   if (e.target?.id === 'btn-geocodificar') _ejecutarGeocod();
 });
 
+$('inst-sin_sede')?.addEventListener('change', syncSinSedeCamposInst);
+
 document.addEventListener('keydown', (e) => {
   if (e.target?.id === 'inst-direccion' && e.key === 'Enter') {
     e.preventDefault();
     _ejecutarGeocod();
   }
+  if (e.target?.id === 'prod-direccion' && e.key === 'Enter') {
+    e.preventDefault();
+    _ejecutarGeocodProd();
+  }
 });
+
+// ---------------------------------------------------------------------
+//  Geocodificación productos (misma lógica que instituciones)
+// ---------------------------------------------------------------------
+let _prodGeocodMap      = null;
+let _prodGeocodMarker   = null;
+let _prodGeocodMapReady = false;
+let _prodGeocodTimer    = null;
+
+function resetGeocodProdUI() {
+  _ocultarEstadoProd();
+  _mostrarBadgesAutoProd(false);
+  const wrap = $('prod-geocod-mapa-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+function _estadoGeocodProd(tipo, msg) {
+  const el = $('prod-geocod-status');
+  if (!el) return;
+  const bg = {
+    cargando: 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe',
+    ok:       'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0',
+    parcial:  'background:#fef3c7;color:#d97706;border:1px solid #fde68a',
+    error:    'background:#fee2e2;color:#dc2626;border:1px solid #fecaca',
+  }[tipo] || '';
+  el.style.cssText = `font-size:10px;margin-top:4px;padding:5px 9px;border-radius:5px;line-height:1.5;display:block;${bg}`;
+  el.textContent   = msg;
+}
+
+function _ocultarEstadoProd() {
+  const el = $('prod-geocod-status');
+  if (el) {
+    el.textContent = '';
+    el.style.display = 'none';
+  }
+}
+
+function _mostrarBadgesAutoProd(visible) {
+  ['prod-geocod-lat-badge', 'prod-geocod-lng-badge'].forEach((id) => {
+    const el = $(id);
+    if (el) el.style.display = visible ? 'inline' : 'none';
+  });
+}
+
+function _inicializarMiniMapaProd(lat, lng) {
+  if (typeof L === 'undefined') return;
+  if (!_prodGeocodMapReady) {
+    _prodGeocodMap = L.map('prod-geocod-mapa', { zoomControl: true, attributionControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(_prodGeocodMap);
+    _prodGeocodMapReady = true;
+  }
+  _prodGeocodMap.setView([lat, lng], 17);
+  if (_prodGeocodMarker) {
+    _prodGeocodMarker.setLatLng([lat, lng]);
+  } else {
+    _prodGeocodMarker = L.marker([lat, lng], { draggable: true })
+      .addTo(_prodGeocodMap)
+      .bindPopup('📍 Arrastra para ajustar')
+      .openPopup();
+    _prodGeocodMarker.on('dragend', () => {
+      const pos = _prodGeocodMarker.getLatLng();
+      $('prod-latitud').value  = pos.lat.toFixed(7);
+      $('prod-longitud').value = pos.lng.toFixed(7);
+    });
+  }
+  setTimeout(() => _prodGeocodMap.invalidateSize(), 150);
+}
+
+async function _ejecutarGeocodProd(opts = {}) {
+  if (!esAdmin) return;
+  const dir = ($('prod-direccion')?.value || '').trim();
+  if (!dir || dir.length < 5) {
+    if (!opts.silencioso) {
+      _estadoGeocodProd('error', '⚠ Escribe una dirección válida (mínimo 5 caracteres).');
+    }
+    return;
+  }
+
+  const btn = $('btn-geocodificar-prod');
+  const txtOrig = btn?.textContent;
+  if (btn && !opts.silencioso) { btn.disabled = true; btn.textContent = '⏳ Buscando…'; }
+  if (!opts.silencioso) {
+    _estadoGeocodProd('cargando', '🔍 Ubicando "' + dir + '" en Medellín…');
+  }
+
+  try {
+    const r = await geocodificarDireccion(dir);
+    if (!r) {
+      if (!opts.silencioso) {
+        _estadoGeocodProd('error', '❌ No se encontraron coordenadas. Prueba una dirección más específica.');
+      }
+      _mostrarBadgesAutoProd(false);
+      return;
+    }
+
+    $('prod-latitud').value  = r.lat.toFixed(7);
+    $('prod-longitud').value = r.lng.toFixed(7);
+    if (r.comuna) $('prod-comuna').value = r.comuna;
+    if (r.barrio) $('prod-barrio').value = r.barrio;
+    _mostrarBadgesAutoProd(true);
+
+    if (!opts.silencioso) {
+      const extra = [r.comuna && `Comuna: ${r.comuna}`, r.barrio && `Barrio: ${r.barrio}`].filter(Boolean).join(' · ');
+      _estadoGeocodProd(
+        r.confianza === 'alta' ? 'ok' : 'parcial',
+        `✅ Punto listo para el mapa${extra ? ' · ' + extra : ''}`,
+      );
+    }
+
+    const wrap = $('prod-geocod-mapa-wrap');
+    if (wrap) wrap.style.display = 'block';
+    _inicializarMiniMapaProd(r.lat, r.lng);
+  } catch (err) {
+    if (!opts.silencioso) _estadoGeocodProd('error', `❌ ${err.message}`);
+  } finally {
+    if (btn && !opts.silencioso) { btn.disabled = false; btn.textContent = txtOrig; }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target?.id === 'btn-geocodificar-prod') _ejecutarGeocodProd();
+});
+
+const prodDirInput = $('prod-direccion');
+if (prodDirInput) {
+  prodDirInput.addEventListener('input', () => {
+    clearTimeout(_prodGeocodTimer);
+    const dir = prodDirInput.value.trim();
+    if (dir.length < 8) return;
+    _prodGeocodTimer = setTimeout(() => _ejecutarGeocodProd({ silencioso: true }), 900);
+  });
+}
 
 {
   const btnNueva = $('btn-nueva-inst');
@@ -241,8 +519,11 @@ function cerrarModal(id)   { $(id).classList.remove('open'); }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => cerrarModal(btn.dataset.close));
 });
-document.querySelectorAll('.mbg').forEach(bg => {
-  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+document.querySelectorAll('.mbg').forEach((bg) => {
+  if (bg.dataset.noBackdropClose != null) return;
+  bg.addEventListener('click', (e) => {
+    if (e.target === bg) bg.classList.remove('open');
+  });
 });
 
 // ---------------------------------------------------------------------
@@ -271,23 +552,90 @@ const state = {
   instCargadas:  false,
   prodCargados:  false,
   usersCargados: false,
+  /** @type {{ id:string, slug:string, etiqueta:string }[]} */
+  servicioCatalogo: [],
+  /** @type {{ id:string, slug:string, etiqueta:string }[]} */
+  discCatalogo:   [],
 };
 
 // =====================================================================
 //  INSTITUCIONES
 // =====================================================================
 
-async function cargarInstituciones() {
-  const { data, error } = await supabase
-    .from('instituciones')
-    .select('*')
-    .order('nombre', { ascending: true });
+/** Pinta casillas desde catálogos cargados en `state`. */
+function renderCatalogosAdmin() {
+  const ws = $('inst-servicios-cat');
+  const wd = $('inst-discapacidad-cat');
+  if (!ws || !wd) return;
+  const ls = state.servicioCatalogo || [];
+  const ld = state.discCatalogo || [];
+  if (!ls.length) {
+    ws.innerHTML =
+      '<span class="hint">Sin catálogo de servicios. Ejecuta en Supabase <code>sql/05-catalogos-oferta.sql</code> y <code>sql/06-rls-catalogos-oferta.sql</code>.</span>';
+  }
+  else {
+    ws.innerHTML = ls.map(s =>
+      `<label class="check"><input type="checkbox" name="inst-srv-cat" value="${s.id}"> ${escapar(s.etiqueta)}</label>`,
+    ).join('');
+  }
+  if (!ld.length) {
+    wd.innerHTML =
+      '<span class="hint">Sin catálogo de discapacidades. Ejecuta las migraciones SQL indicadas.</span>';
+  }
+  else {
+    wd.innerHTML = ld.map(d =>
+      `<label class="check"><input type="checkbox" name="inst-disc-cat" value="${d.id}"> ${escapar(d.etiqueta)}</label>`,
+    ).join('');
+  }
+}
 
-  if (error) {
-    $('tabla-inst-wrap').innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><h3>Error</h3><p>${error.message}</p></div>`;
+function limpiarChecksCatalogos() {
+  document.querySelectorAll(
+    '#inst-servicios-cat input[type=checkbox],#inst-discapacidad-cat input[type=checkbox]',
+  ).forEach((c) => { c.checked = false; });
+}
+
+/** Si no hay datos en puente, intenta marcar según texto legado en `tipos_discapacidad`. */
+function marcarDiscSegunLegacy(rows) {
+  const legacy = Array.isArray(rows) ? rows : [];
+  if (!legacy.length) return;
+  const norm = (t) =>
+    String(t || '')
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase()
+      .trim();
+  const byEt = new Map(
+    state.discCatalogo.map((d) => [norm(d.etiqueta), d.id]),
+  );
+  legacy.forEach((lbl) => {
+    const id = byEt.get(norm(lbl));
+    if (!id) return;
+    const inp = document.querySelector(`#inst-discapacidad-cat input[value="${id}"]`);
+    if (inp) inp.checked = true;
+  });
+}
+
+async function cargarInstituciones() {
+  const [instRes, srvRes, discRes] = await Promise.all([
+    supabase.from('instituciones').select('*').order('nombre', { ascending: true }),
+    supabase.from('servicio_oferta').select('id,slug,etiqueta,orden').order('orden', { ascending: true }),
+    supabase.from('catalogo_discapacidad').select('id,slug,etiqueta,orden').order('orden', { ascending: true }),
+  ]);
+
+  if (srvRes.error) console.warn('[admin] Catálogo servicios:', srvRes.error.message);
+  if (discRes.error) console.warn('[admin] Catálogo discapacidad:', discRes.error.message);
+
+  state.servicioCatalogo = srvRes.data || [];
+  state.discCatalogo     = discRes.data || [];
+
+  renderCatalogosAdmin();
+
+  if (instRes.error) {
+    $('tabla-inst-wrap').innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><h3>Error</h3><p>${instRes.error.message}</p></div>`;
     return;
   }
-  state.instituciones = data || [];
+  state.instituciones = instRes.data || [];
   state.instCargadas  = true;
   renderInstituciones();
 }
@@ -318,14 +666,20 @@ function renderInstituciones() {
     <table>
       <thead>
         <tr>
-          <th>Cat.</th><th>Nombre</th><th>Comuna</th><th>Dirección</th>
+          <th>Cat.</th><th>Nombre</th><th>Comuna</th><th>Barrio</th><th>Dirección</th>
           <th>Teléfono</th><th>Geo</th>${thAcc}
         </tr>
       </thead>
       <tbody>
         ${lista.map(i => {
           const [cls, lbl] = badgeMap[i.categoria] || ['',''];
-          const geo = (i.latitud || i.latitud_verdadera) ? '📌' : '—';
+          const geo = i.sin_sede
+            ? '<span title="Sin sede física (listado aparte en mapa)">🏛</span>'
+            : tieneCoordenadasInst(i)
+              ? '<span title="Coordenadas válidas en Medellín (visible en mapa)">📌</span>'
+              : (i.latitud != null || i.longitud != null)
+                ? '<span title="Tiene lat/lon pero no válidas: edita, geocodifica y guarda">⚠</span>'
+                : '—';
           const acc = esAdmin
             ? `<td>
               <div class="tabla-acciones">
@@ -338,8 +692,9 @@ function renderInstituciones() {
             <td><span class="badge ${cls}">${lbl}</span></td>
             <td><strong>${escapar(i.nombre)}</strong>${i.programa ? `<div style="color:var(--txt2);font-size:11px">${escapar(i.programa)}</div>` : ''}</td>
             <td>${escapar(i.comuna || '—')}</td>
+            <td>${escapar(i.barrio || '—')}</td>
             <td>${escapar([i.direccion, i.direccion_complemento].filter(Boolean).join(' · ') || '—')}</td>
-            <td>${escapar(i.telefono || '—')}</td>
+            <td>${escapar(textoTelefonos(i.telefono) || '—')}</td>
             <td style="text-align:center">${geo}</td>
             ${acc}
           </tr>`;
@@ -361,16 +716,135 @@ function renderInstituciones() {
 $('busc-inst').addEventListener('input', renderInstituciones);
 $('filt-cat-inst').addEventListener('change', renderInstituciones);
 
+function actualizarBotonesQuitarTelefonoLista(listId) {
+  const rows = document.querySelectorAll(`#${listId} .tel-row`);
+  const soloUno = rows.length <= 1;
+  rows.forEach((row) => {
+    const btn = row.querySelector('.tel-row-del');
+    if (btn) {
+      btn.disabled = soloUno;
+      btn.title = soloUno ? 'Debe quedar al menos un campo' : 'Quitar este teléfono';
+    }
+  });
+}
+
+function agregarFilaTelefonoLista(listId, inputClass, valor = '') {
+  const list = $(listId);
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'tel-row';
+  row.innerHTML = `
+    <input type="tel" class="${inputClass}" placeholder="Ej: 604 123 4567" value="${escapar(valor)}" autocomplete="tel">
+    <button type="button" class="tel-row-del" title="Quitar este teléfono" aria-label="Quitar teléfono">×</button>`;
+  row.querySelector('.tel-row-del').addEventListener('click', () => {
+    row.remove();
+    if (!list.querySelector('.tel-row')) agregarFilaTelefonoLista(listId, inputClass, '');
+    actualizarBotonesQuitarTelefonoLista(listId);
+  });
+  list.appendChild(row);
+  actualizarBotonesQuitarTelefonoLista(listId);
+}
+
+function cargarTelefonosLista(listId, inputClass, raw) {
+  const list = $(listId);
+  if (!list) return;
+  list.innerHTML = '';
+  const nums = parseTelefonos(raw);
+  if (!nums.length) agregarFilaTelefonoLista(listId, inputClass, '');
+  else nums.forEach((n) => agregarFilaTelefonoLista(listId, inputClass, n));
+}
+
+function leerTelefonosLista(listId, inputClass) {
+  return [...document.querySelectorAll(`#${listId} .${inputClass}`)]
+    .map((inp) => inp.value.trim())
+    .filter(Boolean);
+}
+
+function cargarTelefonosInst(raw) {
+  cargarTelefonosLista('inst-telefonos-list', 'inst-tel-input', raw);
+}
+
+function leerTelefonosInst() {
+  return leerTelefonosLista('inst-telefonos-list', 'inst-tel-input');
+}
+
+function cargarTelefonosProd(raw) {
+  cargarTelefonosLista('prod-telefonos-list', 'prod-tel-input', raw);
+}
+
+function leerTelefonosProd() {
+  return leerTelefonosLista('prod-telefonos-list', 'prod-tel-input');
+}
+
+/** Resumen para tabla admin (productos). */
+function resumenContactoProducto(p) {
+  const partes = [];
+  if (p.contacto_persona) partes.push(p.contacto_persona);
+  const t = textoTelefonos(p.telefono);
+  if (t) partes.push(t);
+  if (p.email) partes.push(p.email);
+  if (p.pagina_web) partes.push(p.pagina_web);
+  if (partes.length) return partes.join(' · ');
+  return p.contacto || '';
+}
+
+/** Rellena formulario producto; separa campo legado contacto si hace falta. */
+function rellenarContactoProducto(p) {
+  let persona = p.contacto_persona || '';
+  let email = p.email || '';
+  let web = p.pagina_web || '';
+  let telefono = p.telefono || '';
+
+  if (!persona && !email && !web && !telefono && p.contacto) {
+    const legacy = String(p.contacto).trim();
+    const partes = legacy.split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
+    const mails = partes.filter((x) => x.includes('@'));
+    const urls = partes.filter((x) => /^https?:\/\//i.test(x) || /^www\./i.test(x) || (x.includes('.') && !x.includes('@')));
+    const sinMailUrl = partes.filter((x) => !mails.includes(x) && !urls.includes(x));
+    if (mails.length) email = mails.join(' ');
+    if (urls.length) web = urls[0];
+    const nums = parseTelefonos(sinMailUrl.join(' ') || legacy);
+    if (nums.length && nums[0] !== legacy) telefono = nums.join('\n');
+    else if (sinMailUrl.length && /^\d[\d\s\-+()]+$/.test(sinMailUrl.join(''))) {
+      telefono = sinMailUrl.join(' ');
+    } else if (!mails.length && !urls.length) {
+      persona = legacy;
+    }
+  }
+
+  if (!web && email) {
+    const split = String(email).split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
+    const urls = split.filter((x) => /^https?:\/\//i.test(x) || /^www\./i.test(x) || (x.includes('.') && !x.includes('@')));
+    const mails = split.filter((x) => x.includes('@'));
+    if (urls.length) {
+      web = urls[0];
+      email = mails.join(' ') || '';
+    }
+  }
+
+  $('prod-contacto_persona').value = persona;
+  $('prod-email').value = email || '';
+  $('prod-pagina_web').value = web || '';
+  cargarTelefonosProd(telefono);
+}
+
 if (esAdmin) {
+  $('btn-inst-tel-add')?.addEventListener('click', () => agregarFilaTelefonoLista('inst-telefonos-list', 'inst-tel-input', ''));
+  $('btn-prod-tel-add')?.addEventListener('click', () => agregarFilaTelefonoLista('prod-telefonos-list', 'prod-tel-input', ''));
+
   $('btn-nueva-inst').addEventListener('click', () => {
     $('modal-inst-titulo').textContent = 'Nueva institución';
     $('form-inst').reset();
     $('inst-id').value = '';
+    $('inst-sin_sede').checked = false;
+    syncSinSedeCamposInst();
+    limpiarChecksCatalogos();
+    cargarTelefonosInst(null);
     abrirModal('modal-inst');
   });
 }
 
-function editarInstitucion(id) {
+async function editarInstitucion(id) {
   if (!esAdmin) return;
   const i = state.instituciones.find(x => x.id === id);
   if (!i) return;
@@ -381,7 +855,7 @@ function editarInstitucion(id) {
   // Llenar todos los campos
   const campos = [
     'categoria','nombre','programa','tipo_organizacion','direccion','direccion_complemento','comuna','barrio',
-    'latitud','longitud','telefono','email','contacto_persona','servicios','costo',
+    'latitud','longitud','contacto_persona','servicios','costo',
     'cupos','cobertura','poblacion_objetivo','requisitos','sector',
     'nivel_relacionamiento_pp','eje_pp_1','dimension_pp',
   ];
@@ -389,15 +863,38 @@ function editarInstitucion(id) {
     const el = $(`inst-${c}`);
     if (el) el.value = i[c] ?? '';
   });
-  $('inst-tipos_discapacidad').value = (i.tipos_discapacidad || []).join(', ');
+  rellenarContactoInstitucion(i);
+  cargarTelefonosInst(i.telefono);
+  if (i.latitud != null) $('inst-latitud').value = i.latitud;
+  if (i.longitud != null) $('inst-longitud').value = i.longitud;
+  limpiarChecksCatalogos();
+
+  const [{ data: rowsSrv }, { data: rowsDisc }] = await Promise.all([
+    supabase.from('institucion_servicio').select('servicio_id').eq('institucion_id', id),
+    supabase.from('institucion_discapacidad').select('tipo_discapacidad_id').eq('institucion_id', id),
+  ]);
+  const sset = new Set((rowsSrv || []).map((r) => r.servicio_id));
+  const dset = new Set((rowsDisc || []).map((r) => r.tipo_discapacidad_id));
+  document.querySelectorAll('#inst-servicios-cat input[type=checkbox]').forEach(inp => {
+    inp.checked = sset.has(inp.value);
+  });
+  document.querySelectorAll('#inst-discapacidad-cat input[type=checkbox]').forEach(inp => {
+    inp.checked = dset.has(inp.value);
+  });
+  if (!dset.size && (i.tipos_discapacidad || []).length) {
+    marcarDiscSegunLegacy(i.tipos_discapacidad);
+  }
+
   $('inst-atiende_persona_discapacidad').checked = !!i.atiende_persona_discapacidad;
   $('inst-atiende_familia').checked              = !!i.atiende_familia;
   $('inst-atiende_publico_general').checked      = !!i.atiende_publico_general;
+  $('inst-sin_sede').checked = !!i.sin_sede;
+  syncSinSedeCamposInst();
 
   abrirModal('modal-inst');
   const la = parseFloat(String($('inst-latitud').value || '').replace(',', '.'));
   const lo = parseFloat(String($('inst-longitud').value || '').replace(',', '.'));
-  if (Number.isFinite(la) && Number.isFinite(lo)) {
+  if (!i.sin_sede && Number.isFinite(la) && Number.isFinite(lo)) {
     setTimeout(() => {
       const wrap = $('geocod-mapa-wrap');
       if (wrap) wrap.style.display = 'block';
@@ -411,22 +908,36 @@ $('btn-guardar-inst').addEventListener('click', async () => {
   const form = $('form-inst');
   if (!form.checkValidity()) { form.reportValidity(); return; }
 
-  const id   = $('inst-id').value;
-  const tipo = $('inst-tipos_discapacidad').value.trim();
+  const id           = $('inst-id').value;
+  const srvChecked   = [...document.querySelectorAll('#inst-servicios-cat input:checked')].map((c) => c.value);
+  const discChecked  = [...document.querySelectorAll('#inst-discapacidad-cat input:checked')].map((c) => c.value);
+  const discEtiquetas = state.discCatalogo
+    .filter((d) => discChecked.includes(d.id))
+    .map((d) => d.etiqueta);
+
+  const sinSede = $('inst-sin_sede').checked;
+  const latGuardar = sinSede ? null : parseCoordInput('inst-latitud');
+  const lonGuardar = sinSede ? null : parseCoordInput('inst-longitud');
+  let comunaGuardar = sinSede ? CODIGO_COMUNA_SIN_SEDE_FISICA : ($('inst-comuna').value.trim() || null);
+  if (!sinSede && latGuardar != null && lonGuardar != null && !coordenadasEnMedellin(latGuardar, lonGuardar)) {
+    comunaGuardar = CODIGO_COMUNA_FUERA_MEDELLIN;
+  }
 
   const payload = {
     categoria:                    $('inst-categoria').value,
     nombre:                       $('inst-nombre').value.trim(),
     programa:                     $('inst-programa').value.trim() || null,
     tipo_organizacion:            $('inst-tipo_organizacion').value.trim() || null,
-    direccion:                    $('inst-direccion').value.trim() || null,
-    direccion_complemento:        $('inst-direccion_complemento').value.trim() || null,
-    comuna:                       $('inst-comuna').value.trim() || null,
+    direccion:                    sinSede ? DIRECCION_SIN_NOMENCLATURA : ($('inst-direccion').value.trim() || null),
+    direccion_complemento:        sinSede ? null : ($('inst-direccion_complemento').value.trim() || null),
+    comuna:                       comunaGuardar,
     barrio:                       $('inst-barrio').value.trim() || null,
-    latitud:                      parseFloat($('inst-latitud').value)  || null,
-    longitud:                     parseFloat($('inst-longitud').value) || null,
-    telefono:                     $('inst-telefono').value.trim() || null,
+    sin_sede:                     sinSede,
+    latitud:                      latGuardar,
+    longitud:                     lonGuardar,
+    telefono:                     serializarTelefonos(leerTelefonosInst()),
     email:                        $('inst-email').value.trim() || null,
+    pagina_web:                   normalizarPaginaWeb($('inst-pagina_web').value),
     contacto_persona:             $('inst-contacto_persona').value.trim() || null,
     servicios:                    $('inst-servicios').value.trim() || null,
     costo:                        $('inst-costo').value.trim() || null,
@@ -438,22 +949,46 @@ $('btn-guardar-inst').addEventListener('click', async () => {
     nivel_relacionamiento_pp:     $('inst-nivel_relacionamiento_pp').value.trim() || null,
     eje_pp_1:                     $('inst-eje_pp_1').value.trim() || null,
     dimension_pp:                 $('inst-dimension_pp').value.trim() || null,
-    tipos_discapacidad:           tipo ? tipo.split(',').map(s => s.trim()).filter(Boolean) : null,
+    tipos_discapacidad:           discEtiquetas.length ? discEtiquetas : null,
     atiende_persona_discapacidad: $('inst-atiende_persona_discapacidad').checked,
     atiende_familia:              $('inst-atiende_familia').checked,
     atiende_publico_general:      $('inst-atiende_publico_general').checked,
     actualizado_por:              session.user.id,
   };
 
-  let res;
+  let instId = id || null;
+
   if (id) {
-    res = await supabase.from('instituciones').update(payload).eq('id', id);
-  } else {
+    const res = await supabase.from('instituciones').update(payload).eq('id', id);
+    if (res.error) { toast(`Error: ${res.error.message}`, 'error'); return; }
+  }
+  else {
     payload.creado_por = session.user.id;
-    res = await supabase.from('instituciones').insert(payload);
+    const res = await supabase.from('instituciones').insert(payload).select('id').single();
+    if (res.error) { toast(`Error: ${res.error.message}`, 'error'); return; }
+    instId = res.data.id;
   }
 
-  if (res.error) { toast(`Error: ${res.error.message}`, 'error'); return; }
+  async function syncJunction(tabla, fkField, ids) {
+    const { error: delErr } = await supabase.from(tabla).delete().eq('institucion_id', instId);
+    if (delErr) throw delErr;
+    if (!ids.length) return;
+    const chunk = ids.map((x) => ({
+      institucion_id: instId,
+      [fkField]:      x,
+    }));
+    const { error: insErr } = await supabase.from(tabla).insert(chunk);
+    if (insErr) throw insErr;
+  }
+
+  try {
+    await syncJunction('institucion_servicio', 'servicio_id', srvChecked);
+    await syncJunction('institucion_discapacidad', 'tipo_discapacidad_id', discChecked);
+  }
+  catch (e) {
+    toast(`Guardado parcial: institución grabada pero no las categorías (${e.message || e}). ¿Migraciones SQL y permisos admin?`, 'error');
+    return;
+  }
 
   toast(id ? 'Institución actualizada' : 'Institución creada');
   cerrarModal('modal-inst');
@@ -478,17 +1013,34 @@ async function borrarInstitucion(id) {
 //  PRODUCTOS
 // =====================================================================
 
+/** Categorías distintas ya usadas en productos_apoyo.categoria (del CSV / altas previas). */
+function categoriasProductosExistentes() {
+  const set = new Set();
+  for (const p of state.productos || []) {
+    const c = String(p.categoria || '').trim();
+    if (c) set.add(c);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function renderCategoriasProductoDatalist() {
+  const dl = $('prod-categorias-list');
+  if (!dl) return;
+  dl.innerHTML = categoriasProductosExistentes()
+    .map((c) => `<option value="${escapar(c)}"></option>`)
+    .join('');
+}
+
 async function cargarProductos() {
-  const { data, error } = await supabase
-    .from('productos_apoyo')
-    .select('*')
-    .order('proveedor', { ascending: true });
-  if (error) {
-    $('tabla-prod-wrap').innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><h3>Error</h3><p>${error.message}</p></div>`;
+  const prodRes = await supabase.from('productos_apoyo').select('*').order('proveedor', { ascending: true });
+
+  if (prodRes.error) {
+    $('tabla-prod-wrap').innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><h3>Error</h3><p>${prodRes.error.message}</p></div>`;
     return;
   }
-  state.productos = data || [];
+  state.productos = prodRes.data || [];
   state.prodCargados = true;
+  renderCategoriasProductoDatalist();
   renderProductos();
 }
 
@@ -496,7 +1048,8 @@ function renderProductos() {
   const q = ($('busc-prod').value || '').toLowerCase();
   const lista = state.productos.filter(p => {
     if (!q) return true;
-    return [p.proveedor, p.categoria, p.oferta]
+    const catLbl = etiquetaProducto(p);
+    return [p.proveedor, p.categoria, catLbl, p.oferta, p.direccion, p.comuna, p.barrio]
       .some(v => v && v.toLowerCase().includes(q));
   });
 
@@ -514,7 +1067,7 @@ function renderProductos() {
     <table>
       <thead>
         <tr>
-          <th>Categoría</th><th>Proveedor</th><th>Oferta</th><th>Contacto</th>
+          <th>Categoría</th><th>Proveedor</th><th>Comuna</th><th>Barrio</th><th>Oferta</th><th>Contacto</th><th>Geo</th>
           ${thAccP}
         </tr>
       </thead>
@@ -528,11 +1081,15 @@ function renderProductos() {
             </div>
           </td>`
             : '';
+          const geo = p.latitud != null && p.longitud != null ? '📌' : '—';
           return `<tr>
-          <td><span class="badge badge-prod">${escapar(p.categoria || '—')}</span></td>
+          <td><span class="badge badge-prod">${escapar(etiquetaProducto(p) || '—')}</span></td>
           <td><strong>${escapar(p.proveedor)}</strong></td>
-          <td style="max-width:340px">${escapar((p.oferta || '').slice(0, 140))}${p.oferta && p.oferta.length > 140 ? '…' : ''}</td>
-          <td>${escapar(p.contacto || '—')}</td>
+          <td>${escapar(p.comuna || '—')}</td>
+          <td>${escapar(p.barrio || '—')}</td>
+          <td style="max-width:280px">${escapar((p.oferta || '').slice(0, 120))}${p.oferta && p.oferta.length > 120 ? '…' : ''}</td>
+          <td>${escapar(resumenContactoProducto(p) || '—')}</td>
+          <td style="text-align:center">${geo}</td>
           ${acc}
         </tr>`;
         }).join('')}
@@ -552,11 +1109,19 @@ function renderProductos() {
 
 $('busc-prod').addEventListener('input', renderProductos);
 
+function etiquetaProducto(p) {
+  return String(p?.categoria || '').trim();
+}
+
 if (esAdmin) {
   $('btn-nuevo-prod').addEventListener('click', () => {
     $('modal-prod-titulo').textContent = 'Nuevo producto';
     $('form-prod').reset();
     $('prod-id').value = '';
+    $('prod-categoria').value = '';
+    resetGeocodProdUI();
+    renderCategoriasProductoDatalist();
+    rellenarContactoProducto({});
     abrirModal('modal-prod');
   });
 }
@@ -566,11 +1131,25 @@ function editarProducto(id) {
   const p = state.productos.find(x => x.id === id);
   if (!p) return;
   $('modal-prod-titulo').textContent = 'Editar producto';
-  $('prod-id').value         = p.id;
-  $('prod-categoria').value  = p.categoria || '';
-  $('prod-proveedor').value  = p.proveedor || '';
-  $('prod-oferta').value     = p.oferta || '';
-  $('prod-contacto').value   = p.contacto || '';
+  $('prod-id').value = p.id;
+  renderCategoriasProductoDatalist();
+  $('prod-categoria').value = etiquetaProducto(p);
+  $('prod-proveedor').value = p.proveedor || '';
+  $('prod-oferta').value = p.oferta || '';
+  rellenarContactoProducto(p);
+  $('prod-direccion').value = p.direccion || '';
+  $('prod-direccion_complemento').value = p.direccion_complemento || '';
+  $('prod-comuna').value = p.comuna || '';
+  $('prod-barrio').value = p.barrio || '';
+  $('prod-latitud').value = p.latitud ?? '';
+  $('prod-longitud').value = p.longitud ?? '';
+  resetGeocodProdUI();
+  if (p.latitud != null && p.longitud != null) {
+    _mostrarBadgesAutoProd(true);
+    const wrap = $('prod-geocod-mapa-wrap');
+    if (wrap) wrap.style.display = 'block';
+    _inicializarMiniMapaProd(Number(p.latitud), Number(p.longitud));
+  }
   abrirModal('modal-prod');
 }
 
@@ -580,11 +1159,30 @@ $('btn-guardar-prod').addEventListener('click', async () => {
   if (!form.checkValidity()) { form.reportValidity(); return; }
 
   const id = $('prod-id').value;
+  const categoria = $('prod-categoria').value.trim();
+  if (!categoria) {
+    toast('Indica la categoría del producto', 'error');
+    return;
+  }
+  const latRaw = $('prod-latitud').value;
+  const lngRaw = $('prod-longitud').value;
+
   const payload = {
-    categoria: $('prod-categoria').value.trim(),
+    catalogo_producto_id: null,
+    categoria,
     proveedor: $('prod-proveedor').value.trim(),
-    oferta:    $('prod-oferta').value.trim() || null,
-    contacto:  $('prod-contacto').value.trim() || null,
+    oferta: $('prod-oferta').value.trim() || null,
+    contacto_persona: $('prod-contacto_persona').value.trim() || null,
+    telefono: serializarTelefonos(leerTelefonosProd()),
+    email: $('prod-email').value.trim() || null,
+    pagina_web: normalizarPaginaWeb($('prod-pagina_web').value),
+    contacto: null,
+    direccion: $('prod-direccion').value.trim() || null,
+    direccion_complemento: $('prod-direccion_complemento').value.trim() || null,
+    comuna: $('prod-comuna').value.trim() || null,
+    barrio: $('prod-barrio').value.trim() || null,
+    latitud: latRaw !== '' ? Number(latRaw) : null,
+    longitud: lngRaw !== '' ? Number(lngRaw) : null,
     actualizado_por: session.user.id,
   };
 

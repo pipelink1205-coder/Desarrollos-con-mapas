@@ -52,6 +52,20 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .mesa.active .mcnt{background:#78350f;color:#fde68a}
 .prod.active .mcnt{background:#4c1d95;color:#c4b5fd}
 
+/* Categorías de servicio: fila horizontal bajo pestañas (mapa ♿ 💚 🤝) */
+.srv-cat-bar{display:none;flex-shrink:0;background:#0c1e33;border-bottom:1px solid rgba(255,255,255,.08);padding:5px 0 6px}
+.srv-cat-bar.vis{display:block}
+.srv-cat-scroll{display:flex;flex-wrap:nowrap;align-items:center;gap:5px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding:0 10px 2px;scroll-padding:10px}
+.srv-cat-scroll::-webkit-scrollbar{height:4px}
+.srv-cat-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+.srv-cat-lbl{flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;color:rgba(255,255,255,.42);padding-right:4px}
+.srv-cat-chip{flex-shrink:0;font-size:10px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--chip-cat,#64748b) 50%,rgba(255,255,255,.14));background:color-mix(in srgb,var(--chip-cat,#64748b) 26%,rgba(255,255,255,.06));color:#f1f5f9;cursor:pointer;line-height:1.2;white-space:nowrap;transition:.12s}
+.srv-cat-chip:hover{filter:brightness(1.12);color:#fff}
+.srv-cat-chip.on{background:var(--chip-cat,var(--azul-med));border-color:var(--chip-cat,var(--azul-med));color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.srv-cat-bar.modo-zona .srv-cat-chip.en-zona:not(.on){background:color-mix(in srgb,var(--chip-cat,#34d399) 42%,transparent);border-color:var(--chip-cat,#34d399);color:#fff;opacity:1;filter:none}
+.srv-cat-bar.modo-zona .srv-cat-chip:not(.en-zona):not(.on){opacity:.32;filter:saturate(.35)}
+.srv-cat-chips-inner{display:flex;flex-wrap:nowrap;gap:5px;align-items:center;flex:1;min-width:0}
+
 /* LAYOUT */
 .layout{flex:1;display:flex;overflow:hidden}
 
@@ -68,12 +82,28 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .mley-h{font-size:10px;font-weight:700;color:var(--azul);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
 .mley-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;color:var(--txt2)}
 .ldot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(255,255,255,.8);flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.leaflet-srv-pin-wrap{background:transparent!important;border:none!important}
+.srv-map-pin-core{width:22px;height:22px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.38);box-sizing:border-box;margin:0 auto}
+.srv-map-pin-dual{background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%)!important}
+.srv-map-pin-stack{position:relative}
+.srv-map-pin-badge{position:absolute;right:-2px;bottom:-3px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:#0f172a;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .lsep{border:none;border-top:1px solid var(--borde);margin:7px 0}
 .lgrad{height:8px;width:100%;border-radius:3px;margin-bottom:2px}
 .lnums{display:flex;justify-content:space-between;font-size:9px;color:var(--txt2)}
 
 /* PANEL */
-.panel{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid rgba(255,255,255,.05);background:var(--blanco)}
+.panel{width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid rgba(255,255,255,.05);background:var(--blanco);position:relative;min-height:0}
+.cards-stack{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+.filt-panel{position:absolute;inset:0;z-index:25;background:#fff;padding:11px;display:none;flex-direction:column;gap:8px;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.06)}
+.filt-panel.open{display:flex;border-top:1px solid var(--borde)}
+.filt-sec{font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.35px;margin:6px 0 2px}
+.filt-fila{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:10px;font-size:11px;line-height:1.25}
+.filt-row{display:flex;align-items:flex-start;gap:6px;max-width:100%}
+.filt-actions{display:flex;gap:8px;margin-top:auto;padding-top:10px;border-top:1px solid var(--borde)}
+.filt-actions button{flex:1;font-size:11px;font-weight:600;padding:8px;border-radius:6px;border:1px solid var(--borde);cursor:pointer;background:var(--gris);color:var(--azul)}
+.filt-actions .primary{background:var(--azul-med);color:white;border-color:transparent}
+.chipfilt{display:inline-flex;align-items:center;gap:3px;background:var(--azul-xs);border:1px solid var(--azul-cl);color:#1e40af;padding:3px 7px;border-radius:10px;font-size:10px;font-weight:500}
+.chipfilt .x{border:none;background:transparent;cursor:pointer;padding:0 2px;line-height:1;font-weight:700;opacity:.6}
 .phead{padding:12px 14px;border-bottom:1px solid var(--borde);flex-shrink:0}
 .phead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .ptitulo{font-size:14px;font-weight:700;color:var(--azul);line-height:1.2}
@@ -95,13 +125,36 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .pf-in:focus{outline:none;border-color:var(--azul-med)}
 .pf-sel{font-size:11px;border:1px solid var(--borde);border-radius:5px;padding:4px 6px;background:var(--blanco);color:var(--txt);cursor:pointer}
 .pf-sel:focus{outline:none;border-color:var(--azul-med)}
+.pf-sel.btn-sin-sede.on{background:var(--azul-xs);border-color:var(--azul-med);color:var(--azul);font-weight:600}
+.pf-sel.btn-sin-sede .cnt-sede{display:inline-block;min-width:16px;padding:0 5px;margin-left:4px;border-radius:8px;background:rgba(30,58,95,.12);font-size:10px;font-weight:700}
+.phead-sede-row{display:flex;align-items:center;gap:8px;padding:8px 12px 0;border-top:1px solid var(--borde);margin-top:8px;flex-wrap:wrap}
+.phead-sede-hint{font-size:10px;color:var(--txt2);line-height:1.3;flex:1;min-width:140px}
+.tag.t-sinsede{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
 .pf-lbl{font-size:10px;color:var(--txt2);font-weight:500;white-space:nowrap}
+.filt-chipbar-inner{flex-basis:100%;width:100%;display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:1px}
 
 /* CARDS */
 .pcards{flex:1;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:7px}
+.aviso-sin-geo{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;font-size:10px;line-height:1.45;color:#92400e;margin-bottom:4px}
+.aviso-sin-geo b{color:#b45309}
+.aviso-sin-geo ul{margin:6px 0 0;padding-left:16px}
+.aviso-sin-geo li{margin:2px 0}
 .ocard{background:var(--blanco);border:1px solid var(--borde);border-radius:9px;padding:10px 12px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
 .ocard:hover{box-shadow:0 2px 10px rgba(0,0,0,.09);transform:translateX(2px)}
-.ocard.hl{background:var(--azul-xs)}
+.ocard.hl{background:var(--azul-xs);box-shadow:0 0 0 2px rgba(37,99,235,.35)}
+.mapa-ficha{position:absolute;right:12px;top:50%;left:auto;transform:translateY(-50%);z-index:850;width:min(380px,calc(100% - 24px));max-height:min(78vh,560px);display:none;flex-direction:column;background:var(--blanco);border-radius:12px;border:1px solid var(--borde);box-shadow:0 16px 48px rgba(15,23,42,.3);overflow:hidden;pointer-events:auto}
+.mapa-ficha.open{display:flex;transform:translateY(-50%)}
+.mapa-ficha-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--borde);flex-shrink:0;background:var(--gris)}
+.mapa-ficha-hdr .mbadge{margin-bottom:4px}
+.mapa-ficha-tit{font-size:13px;font-weight:700;color:var(--azul);line-height:1.25;margin:0;padding-right:4px}
+.mapa-ficha-x{flex-shrink:0;border:1px solid var(--borde);background:var(--blanco);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;color:var(--txt2)}
+.mapa-ficha-x:hover{background:var(--azul-xs);color:var(--azul)}
+.mapa-ficha-aviso{display:none;padding:6px 12px;font-size:10px;line-height:1.35;color:#92400e;background:#fffbeb;border-bottom:1px solid #fde68a}
+.mapa-ficha-body{overflow-y:auto;flex:1;min-height:0;padding:10px 12px 14px;font-size:12px;-webkit-overflow-scrolling:touch}
+.mapa-ficha-body .mc{display:flex;gap:8px;margin-bottom:7px;align-items:flex-start}
+.mapa-ficha-body .mcl{color:var(--txt2);font-weight:500;min-width:82px;flex-shrink:0;font-size:11px}
+.mapa-ficha-body .mcv{line-height:1.45;flex:1;word-break:break-word}
+.mwrap:has(.mapa-ficha.open) .mley{right:auto;left:10px;bottom:26px}
 .disc-tab .ocard{border-left-color:#bfdbfe}.disc-tab .ocard:hover,.disc-tab .ocard.hl{border-left-color:var(--disc-c)}
 .cuid-tab .ocard{border-left-color:#a7f3d0}.cuid-tab .ocard:hover,.cuid-tab .ocard.hl{border-left-color:var(--cuid-c)}
 .mesa-tab .ocard{border-left-color:var(--mesa-bg)}.mesa-tab .ocard:hover,.mesa-tab .ocard.hl{border-left-color:var(--mesa-c)}
@@ -116,6 +169,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .t-pg{background:#fef3c7;color:#a16207}
 .t-dim{background:var(--prod-bg);color:var(--prod-c)}
 .t-q{background:#f3e8ff;color:#7c3aed}
+.t-sc{background:#e0f2fe;color:#0369a1}
 .cft{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--borde);padding-top:5px;margin-top:2px}
 .ctel{font-size:10px;color:var(--azul-med);font-weight:500}
 .np{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:500}
@@ -141,6 +195,24 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:11px}
 .pcard{background:var(--blanco);border:1px solid var(--borde);border-radius:10px;padding:14px;transition:.15s;border-top:3px solid var(--prod-c)}
 .pcard:hover{box-shadow:0 4px 14px rgba(124,58,237,.15);transform:translateY(-2px)}
+.pcard-click{cursor:pointer}
+.pcard-click:hover{border-color:var(--prod-c)}
+.pdir{font-size:10px;color:var(--txt2);margin:6px 0 4px;line-height:1.35}
+.pmap-hint{font-size:10px;color:var(--prod-c);font-weight:600;margin-top:4px}
+.pcard-minimap{height:72px;width:100%;border-radius:8px;border:1px solid var(--borde);margin:8px 0 4px;overflow:hidden;background:var(--gris);pointer-events:none}
+.modal-prod-map .modal{max-width:540px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column}
+.modal-prod-map .modal-prod-inner{overflow-y:auto;flex:1}
+.modal-prod-map .modal-prod-top{padding:16px 18px 10px;padding-right:40px}
+.modal-prod-map .modal-prod-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:8px;background:var(--prod-bg);color:var(--prod-c);margin-bottom:6px}
+.modal-prod-map .modal-prod-h2{font-size:15px;font-weight:700;color:var(--azul);line-height:1.3;margin:0}
+.modal-prod-map .modal-prod-fields{padding:0 18px 12px;font-size:12px}
+.modal-prod-map .modal-prod-fields .mc{display:flex;gap:8px;margin-bottom:7px;align-items:flex-start}
+.modal-prod-map .modal-prod-fields .mcl{color:var(--txt2);font-weight:500;min-width:88px;flex-shrink:0;font-size:11px}
+.modal-prod-map .modal-prod-fields .mcv{line-height:1.45;flex:1}
+.modal-prod-map .modal-prod-maplbl{font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.35px;padding:0 18px 6px}
+.modal-prod-map #prod-ubic-mapa{height:200px;width:100%;border-top:1px solid var(--borde)}
+.modal-prod-map .modal-prod-sinmap{padding:14px 18px;font-size:11px;color:var(--txt2);background:var(--gris);border-top:1px solid var(--borde)}
+.modal-prod-map .modal-foot{padding:10px 14px;border-top:1px solid var(--borde);text-align:right;flex-shrink:0}
 .pcat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--prod-c);margin-bottom:5px}
 .pprov{font-size:13px;font-weight:600;color:var(--azul);margin-bottom:4px;line-height:1.3}
 .poferta{font-size:11px;color:var(--txt2);line-height:1.4;margin-bottom:9px}
@@ -198,6 +270,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     min-width:0;
   }
   .mtab .mcnt{font-size:9px;padding:0 4px}
+  .srv-cat-chip{font-size:9px;padding:4px 9px}
 
   #lay-mapa.layout{
     flex-direction:column;
@@ -218,9 +291,12 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     border-left:none;
     border-top:1px solid rgba(255,255,255,.12);
   }
+  .mapa-ficha{left:8px;right:8px;width:auto;max-height:72vh;top:auto;bottom:10px;transform:none}
+  .mapa-ficha.open{transform:none}
   .mley{
     bottom:10px;
-    right:6px;
+    left:6px;
+    right:auto;
     padding:7px 9px;
     font-size:10px;
     max-width:min(92vw,200px);
@@ -279,6 +355,13 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   <button class="mtab prod"        id="mt-prod" onclick="setTab('prod')">🦽 Productos    <span class="mcnt" id="cnt-prod">0</span></button>
 </div>
 
+<nav id="srv-cat-bar" class="srv-cat-bar vis" aria-label="Filtrar por categoría de servicio">
+  <div class="srv-cat-scroll" id="srv-cat-scroll">
+    <span class="srv-cat-lbl" title="Varias categorías se combinan como OR">Cat. servicio</span>
+    <div id="srv-cat-chips" class="srv-cat-chips-inner"></div>
+  </div>
+</nav>
+
 <div class="layout" id="lay-mapa">
   <div class="mwrap">
     <div id="mapa"></div>
@@ -288,6 +371,17 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
       <div id="ley-punto"></div>
       <div id="ley-heat"></div>
     </div>
+    <aside id="mapa-ficha" class="mapa-ficha" aria-label="Ficha completa" hidden>
+      <div class="mapa-ficha-hdr">
+        <div>
+          <div class="mbadge" id="mapa-ficha-badge"></div>
+          <h3 class="mapa-ficha-tit" id="mapa-ficha-titulo"></h3>
+        </div>
+        <button type="button" class="mapa-ficha-x" id="mapa-ficha-cerrar" title="Cerrar ficha" aria-label="Cerrar ficha">✕</button>
+      </div>
+      <p class="mapa-ficha-aviso" id="mapa-ficha-aviso" role="status"></p>
+      <div class="mapa-ficha-body" id="mapa-ficha-body"></div>
+    </aside>
   </div>
 
   <div class="panel" id="panel">
@@ -297,7 +391,13 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
           <div class="ptitulo" id="ptitulo">Medellín — Vista general</div>
           <div class="psub"    id="psub">Selecciona una zona para ver ofertas</div>
         </div>
-        <button class="btn-back" id="btn-back" onclick="volverVista()">← Volver</button>
+        <button class="btn-back" id="btn-back" onclick="volverSmart()">← Volver</button>
+      </div>
+      <div class="phead-sede-row" id="phead-sede-row">
+        <button type="button" class="pf-sel btn-sin-sede" id="btn-sin-sede" title="Ofertas sin ubicación física (no aparecen en el mapa)">
+          🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede">0</span>
+        </button>
+        <span class="phead-sede-hint">Listado aparte · sin punto en el mapa · puedes indicar comuna de cobertura en la ficha</span>
       </div>
     </div>
     <div class="pkpis" id="pkpis">
@@ -307,14 +407,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     </div>
     <div class="pfiltros" id="pfiltros">
       <input class="pf-in" id="buscar" placeholder="🔍 buscar…" oninput="renderCards()">
-      <span id="wrap-disc" style="display:flex;align-items:center;gap:4px">
-        <span class="pf-lbl">Disc.</span>
-        <select class="pf-sel" id="f-disc" onchange="renderCards()">
-          <option value="">Todas</option>
-          <option>Intelectual</option><option>Fisica</option>
-          <option>Mental</option><option>Visual</option><option>Auditiva</option>
-        </select>
-      </span>
+      <button type="button" class="pf-sel" id="btn-toggle-filtros" aria-expanded="false" title="Categorías de servicio y discapacidad">⚙ filtros</button>
       <span style="display:flex;align-items:center;gap:4px">
         <span class="pf-lbl">Costo</span>
         <select class="pf-sel" id="f-cos" onchange="renderCards()">
@@ -323,6 +416,19 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
           <option value="pg">Con costo</option>
         </select>
       </span>
+      <div id="filt-chipbar" class="filt-chipbar-inner"></div>
+    </div>
+    <div class="cards-stack">
+    <div class="filt-panel" id="filt-panel" hidden>
+      <div class="filt-sec">Categoría de servicio</div>
+      <div class="filt-fila" id="filt-srv-list"></div>
+      <div class="filt-sec" id="filt-disc-heading">Tipo de discapacidad</div>
+      <div class="filt-fila" id="filt-disc-list"></div>
+      <p class="psub" style="margin-bottom:8px;line-height:1.4"><span id="filt-hint-leg">Marcas filtros dentro de cada bloque como “uno u otro” (si eliges varios servicios, basta que la institución tenga <strong>cualquiera</strong> de ellos).</span></p>
+      <div class="filt-actions">
+        <button type="button" id="filt-limpiar">Limpiar</button>
+        <button type="button" class="primary" id="filt-aplicar">Listo</button>
+      </div>
     </div>
     <div class="pcards" id="pcards">
       <div class="empty">
@@ -330,6 +436,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
         <h3>Selecciona una zona</h3>
         <p>Haz clic en cualquier comuna<br>o corregimiento para ver ofertas</p>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -354,12 +461,33 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   </div>
 </div>
 
+<div class="mbg modal-prod-map" id="modal-prod-ubic">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="mx" type="button" onclick="cerrarMapaProducto()">✕</button>
+    <div class="modal-prod-inner">
+      <div class="modal-prod-top">
+        <span class="modal-prod-badge" id="prod-modal-cat">🦽 Producto</span>
+        <h2 class="modal-prod-h2" id="prod-modal-titulo">Proveedor</h2>
+      </div>
+      <div class="modal-prod-fields" id="prod-modal-body"></div>
+      <div class="modal-prod-maplbl" id="prod-modal-maplbl" style="display:none">Ubicación en el mapa</div>
+      <div id="prod-ubic-mapa" style="display:none"></div>
+      <p class="modal-prod-sinmap" id="prod-modal-sinmap" style="display:none">Este registro aún no tiene punto en el mapa. Puedes pedir que actualicen la dirección en el directorio.</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="cerrarMapaProducto()" style="font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid var(--borde);cursor:pointer;background:var(--gris);color:var(--azul)">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 // =====================================================================
 //  AUTENTICACIÓN: requiere sesión activa
 // =====================================================================
 import { requireAuth } from './js/auth-guard.js';
 import { supabase, cerrarSesion } from './js/supabase-client.js';
+import { esComunaCodigoReporte } from './js/codigos-ubicacion.js';
+import { parseTelefonos } from './js/telefonos.js';
 
 const { perfil } = await requireAuth();
 
@@ -389,6 +517,7 @@ function claveComunaComparable(s) {
 
 /** Número oficial de comuna/corregimiento si viene en el texto (p. ej. «COMUNA 11», «11 - Laureles»). */
 function extraerNumeroComunaMedellin(s) {
+  if (esComunaCodigoReporte(s)) return null;
   const t = claveComunaComparable(s);
   if (!t) return null;
   let m = t.match(/^(\d{1,2})\b/);
@@ -398,11 +527,79 @@ function extraerNumeroComunaMedellin(s) {
   return null;
 }
 
+/** Caja aproximada Valle de Aburrá (puntos fuera no se dibujan en el mapa local). */
+const MED_BBOX = { latMin: 5.85, latMax: 6.65, lonMin: -76.05, lonMax: -75.25 };
+
+/** Lat/lon en BD (vista `lat`/`lon` o columnas crudas). */
+function coordsOrg(o) {
+  if (!o) return null;
+  const lat = Number(o.lat != null && o.lat !== '' ? o.lat : o.latitud);
+  const lon = Number(o.lon != null && o.lon !== '' ? o.lon : o.longitud);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (Math.abs(lat) < 0.00001 && Math.abs(lon) < 0.00001) return null;
+  return { lat, lon };
+}
+
+function tieneCoords(o) {
+  return coordsOrg(o) !== null;
+}
+
+function orgSinSede(o) {
+  return !!(o && (o.sin_sede === true || o.sin_sede === 't'));
+}
+
+/** Normaliza lat/lon típicos de importación (signo, columnas invertidas). */
+function normalizarLatLon(lat, lon) {
+  let la = Number(lat);
+  let lo = Number(lon);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (Math.abs(la) > 50 && Math.abs(lo) < 20) {
+    const t = la; la = lo; lo = t;
+  }
+  if (lo > 70 && lo < 80) lo = -Math.abs(lo);
+  return { lat: la, lon: lo };
+}
+
+/** Coordenadas listas para pintar en el mapa (corrige −75 faltante y descarta fuera de Medellín). */
+function coordsOrgMapa(o) {
+  if (orgSinSede(o)) return null;
+  const raw = coordsOrg(o);
+  if (!raw) return null;
+  const n = normalizarLatLon(raw.lat, raw.lon);
+  if (!n) return null;
+  const { lat, lon } = n;
+  if (lat < MED_BBOX.latMin || lat > MED_BBOX.latMax || lon < MED_BBOX.lonMin || lon > MED_BBOX.lonMax) {
+    return null;
+  }
+  return { lat, lon };
+}
+
+/** Separa marcadores que comparten la misma lat/lon (si no, parece “un solo punto”). */
+function prepararMarcadores(orgs) {
+  const vistos = new Map();
+  const out = [];
+  for (const o of orgs) {
+    let c = coordsOrgMapa(o);
+    if (!c) continue;
+    const key = `${c.lat.toFixed(4)},${c.lon.toFixed(4)}`;
+    const n = vistos.get(key) || 0;
+    vistos.set(key, n + 1);
+    if (n > 0) {
+      const ang = ((n * 58) % 360) * (Math.PI / 180);
+      const r = 0.0002 * (1 + (n % 5) * 0.35);
+      c = { lat: c.lat + Math.cos(ang) * r, lon: c.lon + Math.sin(ang) * r };
+    }
+    out.push({ o, c });
+  }
+  return out;
+}
+
 /**
  * Clave GeoJSON (normalizada) a la que pertenece una org. de discapacidad para el conteo de intensidad.
  * Misma prioridad que en seleccionar(): texto oficial → número en nombre → punto en polígono.
  */
 function claveGeoAsignadaDisc(o, features) {
+  if (orgSinSede(o) || esComunaCodigoReporte(o.c)) return null;
   const geoKeys = new Set(
     features.map((f) => claveComunaComparable(f.properties.org_key || f.properties.nombre))
   );
@@ -420,18 +617,45 @@ function claveGeoAsignadaDisc(o, features) {
     }
   }
 
-  if (o.lat != null && o.lon != null) {
-    const lat = Number(o.lat);
-    const lon = Number(o.lon);
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      for (const f of features) {
-        if (f.geometry && geoContainsPoint(lat, lon, f.geometry)) {
-          return claveComunaComparable(f.properties.org_key || f.properties.nombre);
-        }
+  const cg = coordsOrgMapa(o);
+  if (cg) {
+    for (const f of features) {
+      if (f.geometry && geoContainsPoint(cg.lat, cg.lon, f.geometry)) {
+        return claveComunaComparable(f.properties.org_key || f.properties.nombre);
       }
     }
   }
   return nk || null;
+}
+
+/** ¿La institución pertenece a la comuna/corregimiento del polígono clicado? */
+function orgEnZona(o, f, nkZona) {
+  if (orgSinSede(o)) return false;
+  if (esComunaCodigoReporte(o.c)) return false;
+  if (claveComunaComparable(o.c) === nkZona) return true;
+
+  const numOrg = extraerNumeroComunaMedellin(o.c);
+  const props = f.properties || {};
+  if (numOrg != null && props.numero != null && numOrg === props.numero) {
+    const esCorreg = props.tipo === 'corregimiento';
+    const orgDiceCorreg = /corregimiento/i.test(String(o.c || ''));
+    if (!esCorreg || orgDiceCorreg) return true;
+  }
+
+  const c = coordsOrgMapa(o);
+  return !!(c && f.geometry && geoContainsPoint(c.lat, c.lon, f.geometry));
+}
+
+/** Tras pintar marcadores de una comuna, encuadra polígono + todos los puntos (aunque queden fuera del polígono). */
+function ajustarVistaTrasPuntos(orgsPintados) {
+  if (!mapa || !orgsPintados?.length) return;
+  const ll = orgsPintados.map(coordsOrgMapa).filter(Boolean).map((c) => [c.lat, c.lon]);
+  if (!ll.length) return;
+  const b = L.latLngBounds(ll);
+  if (zonaLayer?.getBounds) {
+    try { b.extend(zonaLayer.getBounds()); } catch { /* */ }
+  }
+  mapa.fitBounds(b, { padding: [36, 36], maxZoom: 16 });
 }
 
 /** Punto en polígono GeoJSON (Polygon / MultiPolygon). Respaldo si `c` no coincide con org_key. */
@@ -476,11 +700,13 @@ function geoContainsPoint(lat, lon, geometry) {
 // =====================================================================
 
 async function cargarDatos() {
-  const [disc, cuid, mesa, prod, geoRes] = await Promise.all([
+  const [disc, cuid, mesa, prod, srvCat, discCat, geoRes] = await Promise.all([
     supabase.from('v_disc_orgs').select('*'),
     supabase.from('v_cuid_orgs').select('*'),
     supabase.from('v_mesa_orgs').select('*'),
     supabase.from('v_productos').select('*'),
+    supabase.from('servicio_oferta').select('slug,etiqueta,orden').order('orden', { ascending: true }),
+    supabase.from('catalogo_discapacidad').select('slug,etiqueta,orden').order('orden', { ascending: true }),
     fetch('/data/comunas.geojson').then(r => r.ok ? r.json() : null).catch(() => null),
   ]);
 
@@ -488,6 +714,8 @@ async function cargarDatos() {
   if (cuid.error) throw cuid.error;
   if (mesa.error) throw mesa.error;
   if (prod.error) throw prod.error;
+  if (srvCat.error) console.warn('[mapa] Catálogo servicios:', srvCat.error.message);
+  if (discCat.error) console.warn('[mapa] Catálogo discapacidad:', discCat.error.message);
 
   if (!geoRes) {
     throw new Error('No se pudo cargar /data/comunas.geojson. Asegúrate de subir el archivo al proyecto.');
@@ -512,8 +740,13 @@ async function cargarDatos() {
     MESA_ORGS: mesa.data || [],
     PRODUCTOS: prod.data || [],
     GEO:       geoRes,
+    SRV_CAT:   srvCat.data  || [],
+    DISC_CAT:  discCat.data || [],
   };
 }
+
+let MAPA_SRV_CAT = [];
+let MAPA_DISC_CAT = [];
 
 let DISC_ORGS, CUID_ORGS, MESA_ORGS, PRODUCTOS, GEO;
 try {
@@ -523,6 +756,8 @@ try {
   MESA_ORGS = datos.MESA_ORGS;
   PRODUCTOS = datos.PRODUCTOS;
   GEO       = datos.GEO;
+  MAPA_SRV_CAT  = datos.SRV_CAT  || [];
+  MAPA_DISC_CAT = datos.DISC_CAT || [];
 } catch (err) {
   document.getElementById('loading').innerHTML =
     `<div style="text-align:center;max-width:400px;padding:20px">
@@ -564,8 +799,369 @@ let zona        = null;
 let orgKey      = null;
 let zonaLayer   = null;
 let zonaOrgs    = [];
+let vistaSinSede = false;
+
+const filtroSrvSlugs  = new Set();
+const filtroDiscSlugs = new Set();
+
+function normLblFilt(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .trim();
+}
+
+/** Si hay filtros de servicios: la institución debe tener al menos uno (slug o etiqueta igual al catálogo). */
+function orgPasaFiltServ(o) {
+  if (!filtroSrvSlugs.size) return true;
+  const slugSet = new Set(o.srv_slugs || []);
+  for (const slug of filtroSrvSlugs) {
+    if (slugSet.has(slug)) return true;
+    const row = MAPA_SRV_CAT.find((x) => x.slug === slug);
+    if (!row) continue;
+    const expect = normLblFilt(row.etiqueta);
+    if ((o.srv_cats || []).some((e) => normLblFilt(e) === expect)) return true;
+  }
+  return false;
+}
+
+/** Pestaña discapacidad: al menos uno de los tipos marcados debe coincidir (slug DB o texto legado en discs). */
+function orgPasaFiltDisc(o) {
+  if (tab !== 'disc' || !filtroDiscSlugs.size) return true;
+  const slugSet = new Set(o.disc_slugs || []);
+  for (const slug of filtroDiscSlugs) {
+    if (slugSet.has(slug)) return true;
+    const row = MAPA_DISC_CAT.find((x) => x.slug === slug);
+    if (!row) continue;
+    const expect = normLblFilt(row.etiqueta);
+    if ((o.discs || []).some((e) => normLblFilt(e) === expect)) return true;
+  }
+  return false;
+}
+
+/** Colores estables por fila del catálogo (leyenda y pins con filtro de servicio). */
+const SRV_PIN_COLORS = ['#1d4ed8', '#047857', '#b45309', '#6d28d9', '#be185d', '#0f766e', '#c2410c', '#4338ca'];
+
+function colorPorSlugServicio(slug) {
+  const i = MAPA_SRV_CAT.findIndex((r) => r.slug === slug);
+  return SRV_PIN_COLORS[(i >= 0 ? i : 0) % SRV_PIN_COLORS.length];
+}
+
+function aplicarColorChipCategoria(btn, slug) {
+  if (!btn || !slug) return;
+  btn.style.setProperty('--chip-cat', colorPorSlugServicio(slug));
+}
+
+function htmlTelefonosMapa(raw) {
+  const nums = parseTelefonos(raw);
+  if (!nums.length) return '';
+  return nums.map((t) => escModalHtml(t)).join('<br>');
+}
+
+/** Slugs del catálogo que aplica la institución (DB + etiquetas legadas). */
+function slugsServicioCatalogo(o) {
+  const out = [];
+  const seen = new Set();
+  for (const s of o.srv_slugs || []) {
+    if (!s || seen.has(s)) continue;
+    if (MAPA_SRV_CAT.some((r) => r.slug === s)) {
+      seen.add(s);
+      out.push(s);
+    }
+  }
+  for (const lbl of o.srv_cats || []) {
+    const row = MAPA_SRV_CAT.find((r) => normLblFilt(r.etiqueta) === normLblFilt(lbl));
+    if (row && !seen.has(row.slug)) {
+      seen.add(row.slug);
+      out.push(row.slug);
+    }
+  }
+  return out;
+}
+
+/** Slugs de categoría de servicio presentes en un conjunto de instituciones (p. ej. comuna). */
+function slugsServicioEnOrgs(orgs) {
+  const out = new Set();
+  for (const o of orgs) {
+    for (const s of slugsServicioCatalogo(o)) out.add(s);
+  }
+  return out;
+}
+
+function metaVisualPinServicio(o) {
+  const slugs = slugsServicioCatalogo(o);
+  let primary = slugs[0] || null;
+  if (filtroSrvSlugs.size) {
+    for (const s of slugs) {
+      if (filtroSrvSlugs.has(s)) {
+        primary = s;
+        break;
+      }
+    }
+  }
+  return { primarySlug: primary, slugs, n: slugs.length };
+}
+
+function recalcFiltersFromCheckboxDom() {
+  filtroSrvSlugs.clear();
+  filtroDiscSlugs.clear();
+  document.querySelectorAll('#filt-srv-list input[type=checkbox]:checked').forEach((c) =>
+    filtroSrvSlugs.add(c.value),
+  );
+  document.querySelectorAll('#filt-disc-list input[type=checkbox]:checked').forEach((c) =>
+    filtroDiscSlugs.add(c.value),
+  );
+}
+
+let filtUIPanelConstruido = false;
+
+function construirUIPanelFiltros() {
+  if (filtUIPanelConstruido) return;
+  const slist = document.getElementById('filt-srv-list');
+  const dlist = document.getElementById('filt-disc-list');
+  if (!slist || !dlist) return;
+  filtUIPanelConstruido = true;
+
+  slist.innerHTML = (MAPA_SRV_CAT.length ? MAPA_SRV_CAT : []).map((r) =>
+    `<label class="filt-row"><input type="checkbox" value="${r.slug}" data-fl="srv"> ${r.etiqueta.replace(/</g, '&lt;')}</label>`,
+  ).join('') || '<span class="psub">Sin catálogo (ejecuta la migración SQL en Supabase).</span>';
+
+  dlist.innerHTML = (MAPA_DISC_CAT.length ? MAPA_DISC_CAT : []).map((r) =>
+    `<label class="filt-row"><input type="checkbox" value="${r.slug}" data-fl="disc"> ${r.etiqueta.replace(/</g, '&lt;')}</label>`,
+  ).join('') || '<span class="psub">Sin catálogo.</span>';
+
+  document.getElementById('filt-panel').addEventListener('change', (e) => {
+    if (!(e.target instanceof HTMLInputElement) || !e.target.matches('[data-fl]')) return;
+    recalcFiltersFromCheckboxDom();
+    sincronizaChipsExploracionServicio();
+    pintarChipBarResumen();
+    renderCards();
+  });
+
+  document.getElementById('filt-limpiar').addEventListener('click', () => {
+    document.querySelectorAll('#filt-srv-list input[type=checkbox],#filt-disc-list input[type=checkbox]').forEach((c) => {
+      c.checked = false;
+    });
+    filtroSrvSlugs.clear(); filtroDiscSlugs.clear();
+    sincronizaChipsExploracionServicio();
+    pintarChipBarResumen();
+    renderCards();
+  });
+  document.getElementById('filt-aplicar').addEventListener('click', cerrarPanelFiltrosResponsivo);
+
+  document.getElementById('btn-toggle-filtros').addEventListener('click', () => {
+    construirUIPanelFiltros();
+    const p      = document.getElementById('filt-panel');
+    const abierto = p.classList.contains('open');
+    if (abierto) cerrarPanelFiltrosResponsivo();
+    else {
+      p.hidden = false; p.classList.add('open');
+      sincronizaSeccionDiscFiltPanel();
+      document.getElementById('btn-toggle-filtros').setAttribute('aria-expanded', 'true');
+    }
+  });
+}
+
+function cerrarPanelFiltrosResponsivo() {
+  const p = document.getElementById('filt-panel');
+  if (p) { p.classList.remove('open'); p.hidden = true; }
+  const b = document.getElementById('btn-toggle-filtros');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+
+/** Oculta discapacidad en pestañas que no aplican y limpia selección para no contaminar filtros cruzados. */
+function sincronizaSeccionDiscFiltPanel() {
+  const showDisc      = tab === 'disc';
+  const hh            = document.getElementById('filt-disc-heading');
+  const lst           = document.getElementById('filt-disc-list');
+  if (hh) hh.hidden  = !showDisc;
+  if (lst) lst.hidden = !showDisc;
+  if (!showDisc) {
+    document.querySelectorAll('#filt-disc-list input[type=checkbox]').forEach((ch) => {
+      ch.checked = false;
+    });
+    filtroDiscSlugs.clear();
+  }
+}
+
+function pintarChipBarResumen() {
+  recalcFiltersFromCheckboxDom();
+  const bar      = document.getElementById('filt-chipbar');
+  if (!bar) return;
+
+  const parts = [];
+
+  [...filtroSrvSlugs].forEach((slug) => {
+    const r = MAPA_SRV_CAT.find((x) => x.slug === slug);
+    parts.push([
+      slug,
+      (r?.etiqueta || slug),
+      () => {
+        document.querySelectorAll(`#filt-srv-list input[value="${slug}"]`).forEach((c) => {
+          c.checked = false;
+        });
+        recalcFiltersFromCheckboxDom();
+        sincronizaChipsExploracionServicio();
+        pintarChipBarResumen();
+        renderCards();
+      },
+    ]);
+  });
+
+  [...filtroDiscSlugs].forEach((slug) => {
+    const r = MAPA_DISC_CAT.find((x) => x.slug === slug);
+    parts.push([
+      slug,
+      (r?.etiqueta || slug),
+      () => {
+        document.querySelectorAll(`#filt-disc-list input[value="${slug}"]`).forEach((c) => {
+          c.checked = false;
+        });
+        recalcFiltersFromCheckboxDom();
+        sincronizaChipsExploracionServicio();
+        pintarChipBarResumen();
+        renderCards();
+      },
+    ]);
+  });
+
+  bar.innerHTML = parts.map(([id, texto, remover]) =>
+    `<span class="chipfilt" role="presentation">${texto}<button type="button" class="x" data-rm-chip="${encodeURIComponent(id)}" aria-label="Quitar">×</button></span>`).join('');
+  parts.forEach(([id, _, remover]) => {
+    const btn = bar.querySelector(`[data-rm-chip="${encodeURIComponent(id)}"]`);
+    if (btn) btn.addEventListener('click', remover);
+  });
+}
+
+function limpiarFiltrosMapa() {
+  document.querySelectorAll('#filt-srv-list input[type=checkbox],#filt-disc-list input[type=checkbox]').forEach((c) => {
+    c.checked = false;
+  });
+  filtroSrvSlugs.clear(); filtroDiscSlugs.clear();
+  sincronizaChipsExploracionServicio();
+  pintarChipBarResumen();
+}
+
+/** Mapa sin comuna: resalta puntos que cumplen filtros activos; si no hay filtros, todos iguales. */
+function refrescarMapaSinZona() {
+  const cfg = CFG[tab];
+  if (!cfg) return;
+  const allOrgs = cfg.data().filter((o) => coordsOrgMapa(o));
+  recalcFiltersFromCheckboxDom();
+  const qRaw = (document.getElementById('buscar')?.value || '').trim();
+  const q = qRaw.toLowerCase();
+  const fc = document.getElementById('f-cos')?.value || '';
+  const hay = filtroSrvSlugs.size || filtroDiscSlugs.size || qRaw || fc;
+  if (!hay) {
+    pintarPuntos(allOrgs);
+    actualizarLeyenda();
+    return;
+  }
+  let orgs = [...cfg.data()];
+  if (q) {
+    orgs = orgs.filter((o) => {
+      const n = (o.n || '').toLowerCase();
+      const srv = (o.srv || '').toLowerCase();
+      const cat = ((o.srv_cats || [])).join(' ').toLowerCase();
+      return n.includes(q) || srv.includes(q) || cat.includes(q);
+    });
+  }
+  orgs = orgs.filter(orgPasaFiltServ);
+  orgs = orgs.filter(orgPasaFiltDisc);
+  if (fc === 'gr') orgs = orgs.filter((o) => o.cos && o.cos.toLowerCase().includes('sin costo'));
+  if (fc === 'pg') orgs = orgs.filter((o) => o.cos && !o.cos.toLowerCase().includes('sin costo'));
+  pintarPuntos(allOrgs, orgs.filter((o) => coordsOrgMapa(o)));
+  actualizarLeyenda();
+}
+
+function syncSrvCatBar() {
+  const bar = document.getElementById('srv-cat-bar');
+  if (!bar) return;
+  if (tab === 'prod') {
+    bar.classList.remove('vis');
+    return;
+  }
+  bar.classList.add('vis');
+  construirBarraCategoriasServicio();
+}
+
+/** Chips bajo pestañas; el estado real sigue en los checkboxes del panel ⚙ filtros. */
+function construirBarraCategoriasServicio() {
+  construirUIPanelFiltros();
+  const chipCol = document.getElementById('srv-cat-chips');
+  if (!chipCol) return;
+
+  chipCol.innerHTML = (MAPA_SRV_CAT || []).length
+    ? MAPA_SRV_CAT.map((r) => {
+        const on = [...document.querySelectorAll('#filt-srv-list input[type=checkbox]:checked')]
+          .some((inp) => inp.value === r.slug);
+        const et = String(r.etiqueta || '').replace(/</g, '&lt;');
+        return `<button type="button" class="srv-cat-chip${on ? ' on' : ''}" data-slug="${r.slug}">${et}</button>`;
+      }).join('')
+    : '<span class="srv-cat-lbl" style="text-transform:none;font-weight:500">Sin catálogo (migraciones SQL).</span>';
+
+  chipCol.querySelectorAll('.srv-cat-chip[data-slug]').forEach((btn) => {
+    aplicarColorChipCategoria(btn, btn.dataset.slug);
+  });
+
+  chipCol.onclick = (e) => {
+    const b = e.target.closest('.srv-cat-chip');
+    if (!b?.dataset.slug) return;
+    const slug = b.dataset.slug;
+    const inp = document.querySelector(`#filt-srv-list input[type=checkbox][value="${slug}"]`);
+    if (!inp) return;
+    inp.checked = !inp.checked;
+    recalcFiltersFromCheckboxDom();
+    sincronizaChipsExploracionServicio();
+    pintarChipBarResumen();
+    renderCards();
+  };
+  sincronizaChipsExploracionServicio();
+}
+
+function sincronizaChipsExploracionServicio() {
+  const bar = document.getElementById('srv-cat-bar');
+  const enZona = zona && tab !== 'prod' && zonaOrgs.length
+    ? slugsServicioEnOrgs(zonaOrgs)
+    : null;
+  if (bar) bar.classList.toggle('modo-zona', !!enZona);
+  document.querySelectorAll('#srv-cat-chips .srv-cat-chip').forEach((btn) => {
+    const slug = btn.dataset.slug;
+    const inp = slug ? document.querySelector(`#filt-srv-list input[type=checkbox][value="${slug}"]`) : null;
+    const on = !!inp?.checked;
+    btn.classList.toggle('on', on);
+    const presente = !!(enZona && slug && enZona.has(slug));
+    btn.classList.toggle('en-zona', presente);
+    if (slug) aplicarColorChipCategoria(btn, slug);
+    btn.title = presente && !on ? 'Categoría con oferta en esta comuna' : '';
+  });
+}
+
+function aplicarKpisLista(orgs) {
+  document.getElementById('pk1').textContent                  = String(orgs.length);
+  document.getElementById('pk1').style.color                  = CFG[tab].c;
+  document.getElementById('pk1l').textContent                 = CFG[tab].lbl.replace(/[^\w\s]/gu, '').trim();
+  document.getElementById('pk2').textContent                  = String(orgs.filter((o) => o.cos && o.cos.toLowerCase().includes('sin costo')).length || '—');
+  const conDato = orgs.filter(tieneCoords).length;
+  const enMapa = orgs.filter((o) => coordsOrgMapa(o)).length;
+  document.getElementById('pk3').textContent = String(enMapa);
+  const pk3l = document.getElementById('pk3l');
+  if (pk3l) {
+    const sinDato = orgs.length - conDato;
+    const malUbic = conDato - enMapa;
+    if (malUbic > 0) {
+      pk3l.textContent = `📌 En mapa (${malUbic} con lat/lon fuera de zona)`;
+    } else if (sinDato > 0) {
+      pk3l.textContent = `📌 En mapa (${sinDato} sin coord.)`;
+    } else {
+      pk3l.textContent = '📌 En mapa';
+    }
+  }
+}
 
 let mapa=null, layerGeo=null, layerPtos=null, layerLabels=null, labelZoomRaf=null;
+const orgMarkerById = new Map();
 
 const CFG = {
   disc:{ c:'#2563eb', bg:'#dbeafe', lbl:'♿ Discapacidad',   data:()=>DISC_ORGS, r:7 },
@@ -709,64 +1305,154 @@ function pintarLabels() {
   layerLabels.addTo(mapa);
 }
 
-function pintarPuntos(orgs, zonaOrgsParam) {
-  if (layerPtos) { mapa.removeLayer(layerPtos); layerPtos = null; }
-  const cfg    = CFG[tab];
-  const inZona = new Set((zonaOrgsParam || []).map(o => o.id));
-  const hasSel = zonaOrgsParam && zonaOrgsParam.length > 0;
-
-  layerPtos = L.layerGroup();
-  orgs.filter(o => o.lat && o.lon).forEach(o => {
-    const enZona = inZona.has(o.id);
-    const radio  = hasSel ? (enZona ? cfg.r : Math.max(3, cfg.r - 3)) : cfg.r;
-    const opac   = hasSel ? (enZona ? 0.95 : 0.25) : 0.92;
-    const peso   = hasSel ? (enZona ? 1.8  : 0.8)  : 1.8;
-    mkMarker(o, cfg, radio, opac, peso);
-  });
-  layerPtos.addTo(mapa);
+function buildSrvPinDivHtml(o) {
+  const { primarySlug, slugs, n } = metaVisualPinServicio(o);
+  const c1 = primarySlug ? colorPorSlugServicio(primarySlug) : '#64748b';
+  const c2 = n >= 2 ? colorPorSlugServicio(slugs[1]) : c1;
+  const wrapStart =
+    '<div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;pointer-events:none">';
+  if (n <= 1) {
+    return `${wrapStart}<div class="srv-map-pin-core" style="background:${c1}"></div></div>`;
+  }
+  if (n === 2) {
+    return `${wrapStart}<div class="srv-map-pin-core srv-map-pin-dual" style="--c1:${c1};--c2:${c2}"></div></div>`;
+  }
+  return `${wrapStart}<div class="srv-map-pin-core srv-map-pin-stack" style="background:${c1}"><span class="srv-map-pin-badge">${n}</span></div></div>`;
 }
 
-function mkMarker(o, cfg, radio, fillOpacity, weight) {
-  const mk = L.circleMarker([o.lat, o.lon], {
-    radius: radio, color: 'white', weight,
-    fillColor: cfg.c, fillOpacity
-  });
-
+function bindOrgPopup(layer, o, cfg) {
   const gratis    = o.cos && o.cos.toLowerCase().includes('sin costo');
   const discsHtml = (o.discs||[]).map(d =>
     `<span style="background:#dbeafe;color:#1e40af;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${d}</span>`
   ).join('');
+  const srvCatHtml = (o.srv_cats||[]).slice(0,8).map(s =>
+    `<span style="background:#e0f2fe;color:#0369a1;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${String(s).replace(/</g, '&lt;')}</span>`,
+  ).join('');
   const progHtml = o.programa ? `<div style="color:#64748b;font-size:10px;font-style:italic;margin-bottom:3px">${o.programa.slice(0,50)}</div>` : '';
   const dimHtml  = (o.eje||o.dim)&&(o.eje||o.dim)!=='nan' ? `<div style="color:#7c3aed;font-size:10px;margin-bottom:2px">📌 ${(o.eje||o.dim).replace(/\n/g,' ').slice(0,40)}</div>` : '';
 
-  mk.bindPopup(`
+  layer.bindPopup(`
     <div style="min-width:215px;max-width:268px;font-size:12px">
       <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-bottom:5px">${cfg.lbl}</div>
       <strong style="color:#1a3a5c;font-size:13px;display:block;margin-bottom:3px">${o.n}</strong>
       ${o.d&&o.d!=='nan'?`<div style="color:#64748b;font-size:11px;margin-bottom:2px">📍 ${o.d}</div>`:''}
       ${progHtml}${dimHtml}
-      ${discsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>`:''}
+      ${srvCatHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${srvCatHtml}</div>` : ''}
+      ${discsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>` : ''}
       ${o.cos&&o.cos!=='nan'?`<div style="font-size:11px;color:${gratis?'#15803d':'#a16207'};margin-bottom:3px">💰 ${o.cos.slice(0,35)}</div>`:''}
       ${o.cupos&&o.cupos!=='nan'?`<div style="font-size:11px;color:#7c3aed;margin-bottom:3px">👥 Cupos: ${o.cupos}</div>`:''}
-      ${o.srv&&o.srv!=='nan'?`<div style="color:#475569;font-size:11px;line-height:1.4;margin:5px 0;padding-top:5px;border-top:1px solid #e2e8f0">${o.srv.replace(/\n/g,' ').slice(0,115)}…</div>`:''}
-      ${o.tel&&o.tel!=='nan'?`<div style="color:#2563eb;font-size:11px;font-weight:500;margin-bottom:2px">📞 ${o.tel}</div>`:''}
-      <button onclick='abrirModal(${JSON.stringify(JSON.stringify(o))})' style="margin-top:8px;width:100%;padding:5px;background:#1a3a5c;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500">📋 Ver ficha completa</button>
+      ${o.srv&&o.srv!=='nan'?`<div style="margin-top:5px;padding-top:5px;border-top:1px solid #e2e8f0"><span style="font-size:10px;font-weight:700;color:#475569;display:block;margin-bottom:2px">Servicio</span><div style="color:#475569;font-size:11px;line-height:1.4">${o.srv.replace(/\n/g,' ').slice(0,115)}…</div></div>`:''}
+      ${o.tel&&o.tel!=='nan'?`<div style="color:#2563eb;font-size:11px;font-weight:500;margin-bottom:2px;line-height:1.45">📞 ${htmlTelefonosMapa(o.tel)}</div>`:''}
+      <button type="button" class="btn-ficha-popup" data-org-id="${o.id}" style="margin-top:8px;width:100%;padding:5px;background:#1a3a5c;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500">📋 Ficha completa</button>
     </div>`, { maxWidth: 285 });
 
-  mk.on('click', () => setTimeout(() => {
-    document.querySelectorAll('.ocard').forEach(c => c.classList.remove('hl'));
-    const card = document.querySelector(`[data-id="${o.id}"]`);
-    if (card) { card.classList.add('hl'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
-  }, 120));
+  layer.on('popupopen', (ev) => {
+    const btn = ev.popup?.getElement()?.querySelector('.btn-ficha-popup');
+    if (btn) {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const org = buscarOrgPorId(btn.dataset.orgId);
+        if (org) abrirFichaDesdeMapa(org);
+      };
+    }
+  });
 
+  layer.on('click', () => {
+    setTimeout(() => resaltarTarjetaLista(o.id), 80);
+  });
+}
+
+function addOrgMarker(o, cfg, opts, cFixed) {
+  const c = cFixed || coordsOrgMapa(o);
+  if (!c) return;
+
+  if (opts.tipo === 'srvpin') {
+    const icon = L.divIcon({
+      className: 'leaflet-srv-pin-wrap',
+      html: buildSrvPinDivHtml(o),
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+    });
+    const mk = L.marker([c.lat, c.lon], { icon });
+    bindOrgPopup(mk, o, cfg);
+    layerPtos.addLayer(mk);
+    return;
+  }
+  const mk = L.circleMarker([c.lat, c.lon], {
+    radius: opts.radio, color: 'white', weight: opts.peso,
+    fillColor: cfg.c, fillOpacity: opts.opac
+  });
+  bindOrgPopup(mk, o, cfg);
   layerPtos.addLayer(mk);
+  if (o.id) orgMarkerById.set(o.id, mk);
+}
+
+function pintarPuntos(orgs, zonaOrgsParam) {
+  if (layerPtos) { mapa.removeLayer(layerPtos); layerPtos = null; }
+  orgMarkerById.clear();
+  const cfg = CFG[tab];
+  if (!cfg || !mapa) return;
+  recalcFiltersFromCheckboxDom();
+
+  /* Vista «Sin sede»: panel de fichas sin puntos en el mapa (ninguna institución). */
+  if (vistaSinSede) return;
+
+  layerPtos = L.layerGroup();
+  const soloFiltradosSrv = filtroSrvSlugs.size > 0;
+
+    if (soloFiltradosSrv) {
+    let lista;
+    if (Array.isArray(zonaOrgsParam)) {
+      lista = zonaOrgsParam.filter((o) => coordsOrgMapa(o));
+    } else {
+      lista = orgs.filter((o) => coordsOrgMapa(o)).filter((o) => orgPasaFiltServ(o));
+    }
+    const marcadores = prepararMarcadores(lista);
+    marcadores.forEach(({ o, c }) => addOrgMarker(o, cfg, { tipo: 'srvpin' }, c));
+    layerPtos.addTo(mapa);
+    if (marcadores.length) ajustarVistaTrasPuntos(marcadores.map((m) => m.o));
+    return;
+  }
+
+  const hasSel = Array.isArray(zonaOrgsParam) && zonaOrgsParam.length > 0;
+
+  /* Con comuna elegida: solo puntos de esa zona (evita “llenar” el mapa con tenues de toda la ciudad). */
+  if (hasSel) {
+    const marcadores = prepararMarcadores(zonaOrgsParam.filter((o) => coordsOrgMapa(o)));
+    marcadores.forEach(({ o, c }) => {
+      addOrgMarker(o, cfg, { tipo: 'circle', radio: cfg.r, opac: 0.95, peso: 1.8 }, c);
+    });
+    layerPtos.addTo(mapa);
+    if (marcadores.length) ajustarVistaTrasPuntos(marcadores.map((m) => m.o));
+    return;
+  }
+
+  const marcadores = prepararMarcadores(orgs.filter((o) => coordsOrgMapa(o)));
+  marcadores.forEach(({ o, c }) => {
+    addOrgMarker(o, cfg, { tipo: 'circle', radio: cfg.r, opac: 0.92, peso: 1.8 }, c);
+  });
+  layerPtos.addTo(mapa);
 }
 
 function actualizarLeyenda() {
   const cfg = CFG[tab];
   if (!cfg) return;
-  document.getElementById('ley-punto').innerHTML =
+  recalcFiltersFromCheckboxDom();
+  let leyPunto =
     `<div class="mley-row"><span class="ldot" style="background:${cfg.c}"></span>${cfg.lbl}</div>`;
+  if (filtroSrvSlugs.size > 0 && MAPA_SRV_CAT.length) {
+    leyPunto += `<div class="lsep"></div>
+      <div class="mley-row" style="font-size:9px;font-weight:600;color:var(--azul)">Solo puntos de categorías marcadas</div>
+      <div class="mley-row" style="font-size:9px;color:var(--txt2);line-height:1.35">1 color = 1 categoría · dos colores = 2 categorías · número = varias</div>`;
+    [...filtroSrvSlugs].slice(0, 10).forEach((slug) => {
+      const r = MAPA_SRV_CAT.find((x) => x.slug === slug);
+      const col = colorPorSlugServicio(slug);
+      const et = String(r?.etiqueta || slug).replace(/</g, '&lt;');
+      leyPunto += `<div class="mley-row"><span class="ldot" style="background:${col};border-radius:3px"></span><span style="font-size:10px">${et}</span></div>`;
+    });
+  }
+  document.getElementById('ley-punto').innerHTML = leyPunto;
   document.getElementById('ley-heat').innerHTML = tab === 'disc' ? `
     <div class="lsep"></div>
     <div class="mley-row" style="font-size:10px;font-weight:600;color:var(--azul)">Intensidad de oferta</div>
@@ -778,7 +1464,37 @@ function actualizarLeyenda() {
     </div>` : '';
 }
 
+function actualizarContadorSinSede() {
+  const cfg = CFG[tab];
+  const el = document.getElementById('cnt-sin-sede');
+  if (!cfg || !el) return;
+  el.textContent = String(cfg.data().filter(orgSinSede).length);
+}
+
+function salirVistaSinSede() {
+  vistaSinSede = false;
+  const btn = document.getElementById('btn-sin-sede');
+  if (btn) btn.classList.remove('on');
+}
+
+function toggleVistaSinSede() {
+  vistaSinSede = !vistaSinSede;
+  const btn = document.getElementById('btn-sin-sede');
+  if (btn) btn.classList.toggle('on', vistaSinSede);
+  if (vistaSinSede) {
+    zona = null;
+    orgKey = null;
+    zonaOrgs = [];
+    zonaLayer = null;
+    if (layerGeo) layerGeo.eachLayer((l) => layerGeo.resetStyle(l));
+    document.getElementById('btn-back').style.display = 'block';
+    document.getElementById('mhint').classList.add('hide');
+  }
+  renderCards();
+}
+
 function seleccionar(f, lyr) {
+  salirVistaSinSede();
   const p    = f.properties;
   zona       = p.nombre;
   orgKey     = p.org_key;
@@ -792,59 +1508,164 @@ function seleccionar(f, lyr) {
   const allOrgs  = CFG[tab].data();
   const bounds   = lyr.getBounds();
   const nkZona   = claveComunaComparable(orgKey);
-  const zOrgs    = tab === 'disc'
-    ? allOrgs.filter(o => {
+  const zOrgs = tab === 'disc'
+    ? allOrgs.filter((o) => orgEnZona(o, f, nkZona))
+    : allOrgs.filter((o) => {
         if (claveComunaComparable(o.c) === nkZona) return true;
-        return !!(o.lat && o.lon && f.geometry && geoContainsPoint(o.lat, o.lon, f.geometry));
-      })
-    : allOrgs.filter(o => {
-        if (!(o.lat && o.lon)) return false;
-        if (f.geometry && geoContainsPoint(o.lat, o.lon, f.geometry)) return true;
-        return bounds.contains([o.lat, o.lon]);
+        const c = coordsOrgMapa(o);
+        if (!c) return false;
+        if (f.geometry && geoContainsPoint(c.lat, c.lon, f.geometry)) return true;
+        return bounds.contains([c.lat, c.lon]);
       });
   zonaOrgs = zOrgs;
 
-  pintarPuntos(allOrgs.filter(o=>o.lat&&o.lon), zOrgs);
-
+  const conGeo = zOrgs.filter(tieneCoords).length;
+  const enMapaZ = zOrgs.filter((o) => coordsOrgMapa(o)).length;
+  const sinGeo = zOrgs.length - conGeo;
+  const malGeo = conGeo - enMapaZ;
   const tipo = p.tipo === 'corregimiento' ? 'Corregimiento' : 'Comuna';
   document.getElementById('ptitulo').textContent = p.nombre_corto || p.nombre;
-  document.getElementById('psub').textContent    = `${tipo} ${p.numero} · ${zOrgs.length} registro${zOrgs.length!==1?'s':''}`;
+  let subZona = `${tipo} ${p.numero} · ${zOrgs.length} registro${zOrgs.length !== 1 ? 's' : ''}`;
+  if (sinGeo > 0 || malGeo > 0) {
+    subZona += ` · ${enMapaZ} punto${enMapaZ !== 1 ? 's' : ''} visibles en el mapa`;
+    if (sinGeo > 0) subZona += ` · ${sinGeo} sin coordenadas`;
+    if (malGeo > 0) subZona += ` · ${malGeo} con coordenadas fuera de Medellín (revisar longitud −75)`;
+  }
+  document.getElementById('psub').textContent = subZona;
   document.getElementById('btn-back').style.display = 'block';
   document.getElementById('pkpis').classList.add('vis');
   document.getElementById('pfiltros').classList.add('vis');
   document.getElementById('mhint').classList.add('hide');
 
-  const gratis = zOrgs.filter(o=>o.cos&&o.cos.toLowerCase().includes('sin costo')).length;
-  const geo    = zOrgs.filter(o=>o.lat&&o.lon).length;
-  document.getElementById('pk1').textContent = zOrgs.length;
-  document.getElementById('pk1').style.color = CFG[tab].c;
-  document.getElementById('pk1l').textContent = (CFG[tab].lbl.replace(/[^\w\s]/g,'').trim());
-  document.getElementById('pk2').textContent = gratis || '—';
-  document.getElementById('pk3').textContent = geo;
+  cerrarPanelFiltrosResponsivo();
+  document.getElementById('buscar').value       = '';
+  document.getElementById('f-cos').value        = '';
 
-  document.getElementById('wrap-disc').style.display = tab==='disc'?'flex':'none';
   document.getElementById('pcards').className = `pcards ${tab}-tab`;
-  document.getElementById('buscar').value = '';
-  document.getElementById('f-disc').value = '';
-  document.getElementById('f-cos').value  = '';
+  sincronizaChipsExploracionServicio();
   renderCards();
 }
 
+function renderCardOrg(o) {
+  const gratis = o.cos && o.cos.toLowerCase().includes('sin costo');
+  const srvsT = (o.srv_cats || []).slice(0, 6).map((s) =>
+    `<span class="tag t-sc">${String(s).replace(/</g, '&lt;').slice(0, 32)}</span>`,
+  ).join('');
+  const discsT = (o.discs || []).map((d) => `<span class="tag t-d">${d}</span>`).join('');
+  const secT = o.sec && o.sec !== 'nan' ? `<span class="tag t-s">${o.sec.slice(0, 15)}</span>` : '';
+  const cosT = o.cos && o.cos !== 'nan' ? `<span class="tag ${gratis ? 't-gr' : 't-pg'}">${gratis ? 'Sin costo' : o.cos.slice(0, 18)}</span>` : '';
+  const dimT = (o.eje || o.dim) && (o.eje || o.dim) !== 'nan' ? `<span class="tag t-dim">${(o.eje || o.dim).slice(0, 18)}</span>` : '';
+  const qT = o.cupos && o.cupos !== 'nan' ? `<span class="tag t-q">👥 ${o.cupos.slice(0, 14)}</span>` : '';
+  const niv = o.niv && o.niv !== 'nan';
+  const ncls = niv && o.niv.toLowerCase().includes('alto') ? 'np-A' : niv && o.niv.toLowerCase().includes('medio') ? 'np-M' : 'np-B';
+  const prog = o.programa && o.programa !== 'nan' ? `<div class="cprog">${o.programa.slice(0, 55)}</div>` : '';
+  const cob = o.c && o.c !== 'nan' ? `<div class="cd" style="color:var(--txt2)">📋 Cobertura: ${String(o.c).replace(/</g, '&lt;')}</div>` : '';
+  const geoIcon = orgSinSede(o)
+    ? '<span class="tag t-sinsede" title="Sin sede física">Sin sede</span>'
+    : coordsOrgMapa(o)
+      ? '<span style="font-size:11px;color:#15803d" title="Visible en el mapa">📌</span>'
+      : tieneCoords(o)
+        ? '<span style="font-size:11px;color:#d97706" title="Coordenadas no válidas">⚠</span>'
+        : '<span style="font-size:10px;color:#cbd5e1" title="Sin coordenadas">○</span>';
+  return `<div class="ocard" data-id="${o.id}" role="button" tabindex="0" title="Ver en el mapa (globo). Ficha completa desde el botón del globo.">
+    <div class="cn">${o.n}</div>
+    ${o.d && o.d !== 'nan' ? `<div class="cd">📍 ${o.d}</div>` : ''}
+    ${cob}
+    ${prog}
+    <div class="tags">${srvsT}${discsT}${secT}${cosT}${dimT}${qT}</div>
+    <div class="cft">
+      <span class="ctel">${o.tel && o.tel !== 'nan' ? '📞 ' + htmlTelefonosMapa(o.tel).replace(/<br>/g, ' · ') : ''}</span>
+      <span style="display:flex;align-items:center;gap:3px">${niv ? `<span class="np ${ncls}">${o.niv}</span>` : ''}${geoIcon}</span>
+    </div>
+  </div>`;
+}
+
 function renderCards() {
-  if (!zona) return;
-  const q  = (document.getElementById('buscar').value||'').toLowerCase();
-  const fd = document.getElementById('f-disc').value.toLowerCase();
+  recalcFiltersFromCheckboxDom();
+  const qRaw = (document.getElementById('buscar').value || '').trim();
+  const q = qRaw.toLowerCase();
   const fc = document.getElementById('f-cos').value;
+  const hayFiltro = filtroSrvSlugs.size || filtroDiscSlugs.size || qRaw || fc;
 
-  let orgs = [...zonaOrgs];
-  if (q)  orgs = orgs.filter(o => (o.n||'').toLowerCase().includes(q) || (o.srv||'').toLowerCase().includes(q));
-  if (fd) orgs = orgs.filter(o => (o.discs||[]).some(d=>d.toLowerCase()===fd));
-  if (fc==='gr') orgs = orgs.filter(o=>o.cos&&o.cos.toLowerCase().includes('sin costo'));
-  if (fc==='pg') orgs = orgs.filter(o=>o.cos&&!o.cos.toLowerCase().includes('sin costo'));
+  if (vistaSinSede) {
+    document.getElementById('pkpis').classList.add('vis');
+    document.getElementById('pfiltros').classList.add('vis');
+    document.getElementById('ptitulo').textContent = '🏛 Instituciones sin sede física';
+    let orgs = CFG[tab].data().filter(orgSinSede);
+    if (q) {
+      orgs = orgs.filter((o) => {
+        const n = (o.n || '').toLowerCase();
+        const srv = (o.srv || '').toLowerCase();
+        const cat = ((o.srv_cats || [])).join(' ').toLowerCase();
+        const com = (o.c || '').toLowerCase();
+        return n.includes(q) || srv.includes(q) || cat.includes(q) || com.includes(q);
+      });
+    }
+    orgs = orgs.filter(orgPasaFiltServ);
+    orgs = orgs.filter(orgPasaFiltDisc);
+    if (fc === 'gr') orgs = orgs.filter((o) => o.cos && o.cos.toLowerCase().includes('sin costo'));
+    if (fc === 'pg') orgs = orgs.filter((o) => o.cos && !o.cos.toLowerCase().includes('sin costo'));
+    document.getElementById('psub').textContent =
+      `${orgs.length} oferta${orgs.length !== 1 ? 's' : ''} · no se muestran en el mapa · abre la ficha para ver contacto`;
+    aplicarKpisLista(orgs);
+    const pk3l = document.getElementById('pk3l');
+    if (pk3l) pk3l.textContent = '🏛 Sin sede';
+    document.getElementById('pk3').textContent = String(orgs.length);
+    pintarPuntos([], []);
+    actualizarLeyenda();
+    const area = document.getElementById('pcards');
+    area.className = `pcards ${tab}-tab`;
+    if (!orgs.length) {
+      area.innerHTML = `<div class="empty"><div class="empty-ico">🏛</div><h3>Sin registros</h3><p>No hay instituciones marcadas como sin sede en esta pestaña, o no coinciden con los filtros.</p></div>`;
+      return;
+    }
+    area.innerHTML = `<div class="aviso-sin-geo" role="status" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">
+      <b>Sin sede física:</b> estas ofertas no tienen punto en el mapa. Pueden tener comuna de cobertura en texto; para ubicarlas en el territorio, edítalas en Admin y desmarca «Sin sede» si corresponde.
+    </div>` + orgs.map(renderCardOrg).join('');
+    return;
+  }
 
-  const allOrgs = CFG[tab].data().filter(o=>o.lat&&o.lon);
-  const filtOrgs = orgs.filter(o=>o.lat&&o.lon);
+  if (!zona && !hayFiltro) {
+    document.getElementById('pkpis').classList.remove('vis');
+    document.getElementById('pfiltros').classList.remove('vis');
+    document.getElementById('pcards').innerHTML = `<div class="empty"><div class="empty-ico">🗺</div><h3>Selecciona una zona</h3><p>Haz clic en cualquier comuna<br>o corregimiento para ver ofertas</p></div>`;
+    document.getElementById('pcards').className = `pcards ${tab}-tab`;
+    refrescarMapaSinZona();
+    return;
+  }
+
+  if (!zona && hayFiltro) {
+    document.getElementById('ptitulo').textContent = 'Medellín — Vista filtrada';
+    const mapaTxt = filtroSrvSlugs.size
+      ? 'En el mapa solo quedan puntos que cumplen al menos una categoría de servicio marcada (OR). El icono refleja cuántas categorías tiene la sede en el catálogo.'
+      : 'El mapa resalta quienes cumplen los filtros activos (varias categorías de servicio = OR).';
+    document.getElementById('psub').textContent =
+      `${CFG[tab].lbl}: ${mapaTxt} Elige comuna para el listado por territorio.`;
+    document.getElementById('pkpis').classList.add('vis');
+    document.getElementById('pfiltros').classList.add('vis');
+  }
+
+  let orgs = !zona ? [...CFG[tab].data()] : [...zonaOrgs];
+
+  if (q) {
+    orgs = orgs.filter((o) => {
+      const n   = (o.n || '').toLowerCase();
+      const srv = (o.srv || '').toLowerCase();
+      const cat = ((o.srv_cats || [])).join(' ').toLowerCase();
+      return n.includes(q) || srv.includes(q) || cat.includes(q);
+    });
+  }
+  orgs = orgs.filter(orgPasaFiltServ);
+  orgs = orgs.filter(orgPasaFiltDisc);
+  if (fc === 'gr') orgs = orgs.filter(o => o.cos && o.cos.toLowerCase().includes('sin costo'));
+  if (fc === 'pg') orgs = orgs.filter(o => o.cos && !o.cos.toLowerCase().includes('sin costo'));
+
+  if (document.getElementById('pkpis').classList.contains('vis')) aplicarKpisLista(orgs);
+
+  const allOrgs = CFG[tab].data().filter((o) => coordsOrgMapa(o));
+  const filtOrgs = orgs.filter((o) => coordsOrgMapa(o));
   pintarPuntos(allOrgs, filtOrgs);
+  actualizarLeyenda();
 
   const area = document.getElementById('pcards');
   if (!orgs.length) {
@@ -852,38 +1673,41 @@ function renderCards() {
     return;
   }
 
-  area.innerHTML = orgs.map(o => {
-    const gratis = o.cos&&o.cos.toLowerCase().includes('sin costo');
-    const discsT = (o.discs||[]).map(d=>`<span class="tag t-d">${d}</span>`).join('');
-    const secT   = o.sec&&o.sec!=='nan'?`<span class="tag t-s">${o.sec.slice(0,15)}</span>`:'';
-    const cosT   = o.cos&&o.cos!=='nan'?`<span class="tag ${gratis?'t-gr':'t-pg'}">${gratis?'Sin costo':o.cos.slice(0,18)}</span>`:'';
-    const dimT   = (o.eje||o.dim)&&(o.eje||o.dim)!=='nan'?`<span class="tag t-dim">${(o.eje||o.dim).slice(0,18)}</span>`:'';
-    const qT     = o.cupos&&o.cupos!=='nan'?`<span class="tag t-q">👥 ${o.cupos.slice(0,14)}</span>`:'';
-    const niv    = o.niv&&o.niv!=='nan';
-    const ncls   = niv&&o.niv.toLowerCase().includes('alto')?'np-A':niv&&o.niv.toLowerCase().includes('medio')?'np-M':'np-B';
-    const prog   = o.programa&&o.programa!=='nan'?`<div class="cprog">${o.programa.slice(0,55)}</div>`:'';
-    return `<div class="ocard" data-id="${o.id}" onclick='abrirModal(${JSON.stringify(JSON.stringify(o))})'>
-      <div class="cn">${o.n}</div>
-      ${o.d&&o.d!=='nan'?`<div class="cd">📍 ${o.d}</div>`:''}
-      ${prog}
-      <div class="tags">${discsT}${secT}${cosT}${dimT}${qT}</div>
-      <div class="cft">
-        <span class="ctel">${o.tel&&o.tel!=='nan'?'📞 '+o.tel:''}</span>
-        <span style="display:flex;align-items:center;gap:3px">
-          ${niv?`<span class="np ${ncls}">${o.niv}</span>`:''}
-          ${o.lat&&o.lon?'<span style="font-size:11px;color:#94a3b8" title="Geolocalizado">📌</span>':''}
-        </span>
-      </div>
-    </div>`;
-  }).join('');
+  const sinGeoLista = orgs.filter((o) => !orgSinSede(o) && !tieneCoords(o));
+  const malGeoLista = orgs.filter((o) => !orgSinSede(o) && tieneCoords(o) && !coordsOrgMapa(o));
+  const partesAviso = [];
+  if (sinGeoLista.length) {
+    partesAviso.push(`<p><b>${sinGeoLista.length}</b> sin latitud/longitud en el directorio (geocodifica en Admin):</p>
+      <ul>${sinGeoLista.slice(0, 6).map((o) => `<li>${String(o.n || '—').replace(/</g, '&lt;')}</li>`).join('')}</ul>`);
+  }
+  if (malGeoLista.length) {
+    partesAviso.push(`<p><b>${malGeoLista.length}</b> tienen coordenadas pero <b>no se ven en el mapa</b> (longitud sin <code>−</code>, lat/lon invertidas o fuera de Medellín). Abre en Admin, geocodifica y <b>Guardar</b> (lat ≈ 6.2, lon ≈ <b>−75.5</b>):</p>
+      <ul>${malGeoLista.slice(0, 6).map((o) => `<li>${String(o.n || '—').replace(/</g, '&lt;')}</li>`).join('')}</ul>`);
+  }
+  const avisoSinGeo = partesAviso.length
+    ? `<div class="aviso-sin-geo" role="status"><b>Mapa:</b> ${partesAviso.join('')}</div>`
+    : '';
+
+  const sinSedeEnZona = orgs.filter(orgSinSede).length;
+  const avisoSinSede = sinSedeEnZona
+    ? `<div class="aviso-sin-geo" role="status" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">
+        <b>${sinSedeEnZona}</b> en esta zona están marcadas como <b>sin sede</b> (no aparecen en el mapa).
+        <button type="button" class="pf-sel" style="margin-top:6px" onclick="toggleVistaSinSede()">Ver listado «Sin sede»</button>
+      </div>`
+    : '';
+
+  area.innerHTML = avisoSinGeo + avisoSinSede + orgs.map(renderCardOrg).join('');
 }
 
 function volverVista() {
+  salirVistaSinSede();
+  cerrarFichaPanel();
   zona = null; orgKey = null; zonaLayer = null; zonaOrgs = [];
+  limpiarFiltrosMapa();
+
   if (mapa) {
     mapa.setView([6.2518,-75.5636],12);
     layerGeo.eachLayer(l => layerGeo.resetStyle(l));
-    pintarPuntos(CFG[tab].data().filter(o=>o.lat&&o.lon));
     pintarLabels();
   }
   document.getElementById('ptitulo').textContent = 'Medellín — Vista general';
@@ -892,22 +1716,225 @@ function volverVista() {
   document.getElementById('pkpis').classList.remove('vis');
   document.getElementById('pfiltros').classList.remove('vis');
   document.getElementById('mhint').classList.remove('hide');
-  document.getElementById('pcards').innerHTML = `<div class="empty"><div class="empty-ico">🗺</div><h3>Selecciona una zona</h3><p>Haz clic en cualquier comuna<br>o corregimiento para ver ofertas</p></div>`;
+  document.getElementById('mhint').textContent = '👆 Haz clic en una comuna o corregimiento para explorar';
+  document.getElementById('buscar').value = '';
+  document.getElementById('f-cos').value = '';
+  sincronizaChipsExploracionServicio();
+  renderCards();
+}
+
+function volverSmart() {
+  if (vistaSinSede) {
+    salirVistaSinSede();
+    volverVista();
+    return;
+  }
+  if (zona) {
+    cerrarFichaPanel();
+    zona = null;
+    zonaOrgs = [];
+    orgKey = null;
+    zonaLayer = null;
+    document.getElementById('btn-back').style.display = 'none';
+
+    const mh = document.getElementById('mhint');
+    if (mh) {
+      mh.classList.remove('hide');
+      mh.textContent =
+        '👆 Mapa general — los filtros de categoría siguen activos. Elige comuna para el listado por territorio.';
+    }
+
+    if (layerGeo) layerGeo.eachLayer((l) => layerGeo.resetStyle(l));
+
+    recalcFiltersFromCheckboxDom();
+    const qRaw = (document.getElementById('buscar').value || '').trim();
+    const fc = document.getElementById('f-cos').value;
+    const hayFiltro = filtroSrvSlugs.size || filtroDiscSlugs.size || qRaw || fc;
+    if (!hayFiltro) {
+      volverVista();
+      return;
+    }
+
+    document.getElementById('ptitulo').textContent = 'Medellín — Vista filtrada';
+    document.getElementById('psub').textContent =
+      `${CFG[tab].lbl}: mapa según filtros. Elige comuna para ver el listado por territorio.`;
+    document.getElementById('pkpis').classList.add('vis');
+    document.getElementById('pfiltros').classList.add('vis');
+    sincronizaChipsExploracionServicio();
+    renderCards();
+    return;
+  }
+  volverVista();
 }
 
 function setTab(t) {
+  salirVistaSinSede();
   tab = t;
   document.querySelectorAll('.mtab').forEach(el => el.classList.remove('active'));
   document.getElementById(`mt-${t}`).classList.add('active');
   const esProd = t === 'prod';
   document.getElementById('lay-mapa').style.display = esProd ? 'none' : 'flex';
   document.getElementById('lay-prod').style.display = esProd ? 'flex' : 'none';
+  const sedeRow = document.getElementById('phead-sede-row');
+  if (sedeRow) sedeRow.style.display = esProd ? 'none' : 'flex';
   if (!esProd) {
+    construirUIPanelFiltros();
+    cerrarPanelFiltrosResponsivo();
+    actualizarContadorSinSede();
     volverVista();
     if (layerGeo) layerGeo.eachLayer(l => layerGeo.resetStyle(l));
     actualizarLeyenda();
+    syncSrvCatBar();
     setTimeout(() => mapa && mapa.invalidateSize(), 50);
   }
+  else {
+    document.getElementById('srv-cat-bar')?.classList.remove('vis');
+    destruirMiniMapasProd();
+    cerrarMapaProducto();
+  }
+}
+
+function escProdHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
+let _mapaProdUbic = null;
+let _mapaProdMarker = null;
+const _miniProdMaps = [];
+
+function destruirMiniMapasProd() {
+  _miniProdMaps.forEach((m) => { try { m.remove(); } catch { /* */ } });
+  _miniProdMaps.length = 0;
+}
+
+function initMiniMapasProd() {
+  destruirMiniMapasProd();
+  document.querySelectorAll('.pcard-minimap').forEach((el) => {
+    const lat = Number(el.dataset.lat);
+    const lon = Number(el.dataset.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const m = L.map(el, {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+    }).setView([lat, lon], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
+    L.circleMarker([lat, lon], {
+      radius: 6,
+      color: '#fff',
+      weight: 1.5,
+      fillColor: '#7c3aed',
+      fillOpacity: 0.95,
+    }).addTo(m);
+    _miniProdMaps.push(m);
+    setTimeout(() => m.invalidateSize(), 60);
+  });
+}
+
+function contactoProductoLegacy(p) {
+  if (p.contacto_persona || p.tel || p.email || p.web) return null;
+  return p.contacto && String(p.contacto).trim() ? p.contacto : null;
+}
+
+function htmlContactoProductoCard(p) {
+  const lineas = [];
+  if (p.contacto_persona) lineas.push(escProdHtml(p.contacto_persona));
+  const telHtml = htmlTelefonosMapa(p.tel || p.contacto);
+  if (telHtml) lineas.push(telHtml);
+  if (p.email) lineas.push(escProdHtml(p.email));
+  const web = valorWebModal(p.web);
+  if (web) lineas.push(web);
+  const leg = contactoProductoLegacy(p);
+  if (leg) lineas.push(escProdHtml(leg));
+  return lineas.length ? lineas.join('<br>') : escProdHtml('Sin contacto');
+}
+
+function camposFichaProducto(p) {
+  const dir = [p.d, p.d_compl].filter(Boolean).join(' · ');
+  const zona = [p.c, p.barrio].filter(Boolean).join(' · ');
+  const telFicha = htmlTelefonosMapa(p.tel) || contactoProductoLegacy(p);
+  return [
+    ['📂 Categoría', p.cat],
+    ['📋 Oferta', p.oferta],
+    ['📍 Dirección', dir || null],
+    ['🏙 Comuna / barrio', zona || null],
+    ['👤 Contacto', p.contacto_persona || null],
+    ['📞 Teléfono', telFicha || null],
+    ['✉ Correo', p.email || null],
+    ['🌐 Página web', valorWebModal(p.web)],
+  ];
+}
+
+function cerrarMapaProducto() {
+  document.getElementById('modal-prod-ubic')?.classList.remove('open');
+  if (_mapaProdUbic) {
+    _mapaProdUbic.remove();
+    _mapaProdUbic = null;
+    _mapaProdMarker = null;
+  }
+}
+
+function abrirMapaProducto(id) {
+  const p = PRODUCTOS.find((x) => x.id === id);
+  if (!p) return;
+
+  const tieneGeo = p.lat != null && p.lon != null;
+  const catEl = document.getElementById('prod-modal-cat');
+  const titEl = document.getElementById('prod-modal-titulo');
+  const bodyEl = document.getElementById('prod-modal-body');
+  const mapLbl = document.getElementById('prod-modal-maplbl');
+  const mapDiv = document.getElementById('prod-ubic-mapa');
+  const sinMap = document.getElementById('prod-modal-sinmap');
+
+  if (catEl) catEl.textContent = p.cat || 'Producto de apoyo';
+  if (titEl) titEl.textContent = p.prov || 'Proveedor';
+
+  if (bodyEl) {
+    bodyEl.innerHTML = camposFichaProducto(p)
+      .filter(([, v]) => v && String(v).trim())
+      .map(([l, v]) => {
+        const esHtml = typeof v === 'string' && (v.includes('<a ') || v.includes('<br>'));
+        const val = esHtml ? v : escProdHtml(v);
+        return `<div class="mc"><span class="mcl">${l}</span><span class="mcv">${val}</span></div>`;
+      })
+      .join('');
+  }
+
+  if (mapLbl) mapLbl.style.display = tieneGeo ? 'block' : 'none';
+  if (mapDiv) mapDiv.style.display = tieneGeo ? 'block' : 'none';
+  if (sinMap) sinMap.style.display = tieneGeo ? 'none' : 'block';
+
+  document.getElementById('modal-prod-ubic')?.classList.add('open');
+
+  if (!tieneGeo) return;
+
+  const lat = Number(p.lat);
+  const lon = Number(p.lon);
+
+  setTimeout(() => {
+    if (_mapaProdUbic) {
+      _mapaProdUbic.remove();
+      _mapaProdUbic = null;
+      _mapaProdMarker = null;
+    }
+    _mapaProdUbic = L.map('prod-ubic-mapa', { zoomControl: true, attributionControl: true }).setView([lat, lon], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(_mapaProdUbic);
+    _mapaProdMarker = L.circleMarker([lat, lon], {
+      radius: 10,
+      color: '#fff',
+      weight: 2,
+      fillColor: '#7c3aed',
+      fillOpacity: 0.95,
+    }).addTo(_mapaProdUbic).bindPopup(`<strong>${escProdHtml(p.prov)}</strong>`);
+    _mapaProdUbic.invalidateSize();
+  }, 100);
 }
 
 function initProductos() {
@@ -925,55 +1952,273 @@ function initProductos() {
     d.onclick=()=>filtrarProd(cat);
     chips.appendChild(d);
   });
+
+  const grid = document.getElementById('pgrid');
+  if (grid && !grid.dataset.mapClick) {
+    grid.dataset.mapClick = '1';
+    grid.addEventListener('click', (e) => {
+      const card = e.target.closest('.pcard-click');
+      if (!card?.dataset.prodId) return;
+      abrirMapaProducto(card.dataset.prodId);
+    });
+  }
+
+  document.getElementById('modal-prod-ubic')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) cerrarMapaProducto();
+  });
+
   filtrarProd('');
 }
 function filtrarProd(cat) {
   document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active',cat===''?i===0:c.textContent.startsWith(cat.split(' ').slice(0,4).join(' '))));
   const items=cat?PRODUCTOS.filter(p=>p.cat===cat):PRODUCTOS;
-  document.getElementById('pgrid').innerHTML=items.map(p=>`
-    <div class="pcard">
-      <div class="pcat">${p.cat}</div>
-      <div class="pprov">${p.prov}</div>
-      <div class="poferta">${p.oferta||''}</div>
-      <div class="pcontacto">📞 ${p.contacto||'Sin contacto'}</div>
-    </div>`).join('');
+  document.getElementById('pgrid').innerHTML=items.map(p=>{
+    const tieneGeo = p.lat != null && p.lon != null;
+    const dir = [p.d, p.d_compl].filter(Boolean).join(' · ');
+    const zona = [p.c, p.barrio].filter(Boolean).join(' · ');
+    const dataId = p.id ? ` data-prod-id="${p.id}"` : '';
+    const miniMap = tieneGeo
+      ? `<div class="pcard-minimap" data-lat="${p.lat}" data-lon="${p.lon}" aria-hidden="true"></div>`
+      : '';
+    return `<div class="pcard pcard-click"${dataId} title="Clic para ver ficha y mapa">
+      <div class="pcat">${escProdHtml(p.cat)}</div>
+      <div class="pprov">${escProdHtml(p.prov)}</div>
+      ${miniMap}
+      <div class="poferta">${escProdHtml(p.oferta||'')}</div>
+      ${dir || zona ? `<div class="pdir">📍 ${escProdHtml(dir || zona)}${dir && zona ? '<br>' + escProdHtml(zona) : ''}</div>` : ''}
+      <div class="pcontacto">📞 ${htmlContactoProductoCard(p)}</div>
+      <div class="pmap-hint">${tieneGeo ? '🗺 Clic para ampliar mapa y detalle' : '📋 Clic para ver detalle'}</div>
+    </div>`;
+  }).join('');
+  initMiniMapasProd();
+}
+
+function escModalHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function valorWebModal(url) {
+  const t = String(url || '').trim();
+  if (!t || t === 'nan') return null;
+  const href = /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/\//, '')}`;
+  const safe = escModalHtml(href);
+  const label = escModalHtml(t);
+  return `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:var(--azul-med);word-break:break-all">${label}</a>`;
+}
+
+function cfgInstitucion(o) {
+  return CFG[o.tipo === 'discapacidad' ? 'disc' : o.tipo === 'cuidado' ? 'cuid' : 'mesa'] || CFG.disc;
+}
+
+function etiquetaTipoInstitucion(o) {
+  return o.tipo === 'discapacidad' ? '♿ Discapacidad' : o.tipo === 'cuidado' ? '💚 Oferta de cuidados' : '🤝 Mesa de cuidado';
+}
+
+function htmlFichaInstitucion(o) {
+  const webHtml = valorWebModal(o.web);
+  const campos = [
+    ['📍 Dirección', o.d], ['🏙 Comuna', o.c], ['🏘 Barrio', o.barrio],
+    ['📂 Categoría de servicio', (o.srv_cats || []).length ? (o.srv_cats || []).join('; ') : null],
+    ['♿ Discapacidades', (o.discs || []).join(', ')], ['📋 Programa', o.programa],
+    ['📌 Dimensión PP', o.eje || o.dim], ['🏢 Sector', o.sec], ['💰 Costo', o.cos],
+    ['👥 Cupos', o.cupos], ['🌍 Cobertura', o.cobertura], ['👤 Población', o.poblacion],
+    ['📋 Requisitos', o.req],
+    ['📋 Servicio', o.srv ? o.srv.replace(/\n/g, ', ') : null],
+    ['📞 Teléfono', htmlTelefonosMapa(o.tel) || null], ['✉ Correo', o.email],
+    ['🌐 Página web', webHtml],
+    ['🔗 Nivel PP', o.niv],
+  ];
+  return campos
+    .filter(([, v]) => v && String(v).trim() && v !== 'nan')
+    .map(([l, v]) => {
+      const esHtml = typeof v === 'string' && (v.includes('<a ') || v.includes('<br>'));
+      const val = esHtml ? v : escModalHtml(v);
+      return `<div class="mc"><span class="mcl">${l}</span><span class="mcv">${val}</span></div>`;
+    })
+    .join('');
+}
+
+function buscarOrgPorId(id) {
+  if (!id) return null;
+  const cfg = CFG[tab];
+  if (!cfg) return null;
+  if (zona && zonaOrgs.length) {
+    const enZona = zonaOrgs.find((x) => x.id === id);
+    if (enZona) return enZona;
+  }
+  return cfg.data().find((x) => x.id === id) || null;
+}
+
+function resaltarTarjetaLista(id) {
+  if (!id) return;
+  document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
+  const card = document.querySelector(`.ocard[data-id="${id}"]`);
+  if (card) {
+    card.classList.add('hl');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function actualizarAvisoFichaMapa(o, encuadro) {
+  const aviso = document.getElementById('mapa-ficha-aviso');
+  if (!aviso) return;
+  if (!encuadro) {
+    aviso.textContent = orgSinSede(o)
+      ? 'Sin sede física: no hay punto en el mapa.'
+      : 'Sin ubicación visible en el mapa (sin coordenadas válidas en Medellín).';
+    aviso.style.display = 'block';
+  } else {
+    aviso.style.display = 'none';
+    aviso.textContent = '';
+  }
+}
+
+function cerrarFichaPanel() {
+  const panel = document.getElementById('mapa-ficha');
+  if (panel) {
+    panel.classList.remove('open');
+    panel.hidden = true;
+  }
+  document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
+}
+
+function abrirFichaPanel(o) {
+  const c = cfgInstitucion(o);
+  const badge = document.getElementById('mapa-ficha-badge');
+  const tit = document.getElementById('mapa-ficha-titulo');
+  const body = document.getElementById('mapa-ficha-body');
+  const panel = document.getElementById('mapa-ficha');
+  if (!panel || !body) return;
+  if (badge) {
+    badge.textContent = etiquetaTipoInstitucion(o);
+    badge.style.cssText = `background:${c.bg};color:${c.c}`;
+  }
+  if (tit) tit.textContent = o.n || 'Institución';
+  body.innerHTML = htmlFichaInstitucion(o);
+  panel.hidden = false;
+  panel.classList.add('open');
+}
+
+function cerrarTodosPopupsMapa() {
+  if (!layerPtos) return;
+  layerPtos.eachLayer((l) => {
+    try { l.closePopup(); } catch { /* */ }
+  });
+}
+
+/** Ficha completa a la derecha del mapa, junto al listado (solo botón del globo). */
+function abrirFichaDesdeMapa(o) {
+  if (!o) return;
+  resaltarTarjetaLista(o.id);
+  cerrarTodosPopupsMapa();
+  abrirFichaPanel(o);
+  actualizarAvisoFichaMapa(o, !!coordsOrgMapa(o));
+  if (mapa && coordsOrgMapa(o) && !vistaSinSede) {
+    setTimeout(() => {
+      if (window.innerWidth > 720) {
+        mapa.panBy([120, 0], { animate: true, duration: 0.42 });
+      }
+    }, 60);
+  }
+}
+
+function enfocarInstitucionEnMapa(o, opts = {}) {
+  const { abrirPopup = true, soloLista = false } = opts;
+  if (!mapa || vistaSinSede) return false;
+  const c = coordsOrgMapa(o);
+  if (!c) return false;
+  const zoomObj = mapa.getZoom() < 15 ? 16 : Math.max(mapa.getZoom(), 16);
+  mapa.flyTo([c.lat, c.lon], zoomObj, { duration: 0.55 });
+  const mk = orgMarkerById.get(o.id);
+  setTimeout(() => {
+    if (window.innerWidth > 720 && soloLista) {
+      mapa.panBy([32, 0], { animate: true, duration: 0.35 });
+    }
+    if (abrirPopup && mk?.openPopup) {
+      try { mk.openPopup(); } catch { /* */ }
+    }
+  }, 560);
+  return true;
+}
+
+/** Clic en tarjeta del panel derecho: globo + zoom, sin ficha completa. */
+function seleccionarInstitucionLista(o, cardEl) {
+  if (!o) return;
+  cerrarFichaPanel();
+  resaltarTarjetaLista(o.id);
+  if (cardEl) {
+    cardEl.classList.add('hl');
+    cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  enfocarInstitucionEnMapa(o, { abrirPopup: true, soloLista: true });
+}
+
+function initPanelCardsClick() {
+  const area = document.getElementById('pcards');
+  if (!area || area.dataset.clickInit) return;
+  area.dataset.clickInit = '1';
+  area.addEventListener('click', (e) => {
+    const card = e.target.closest('.ocard[data-id]');
+    if (!card?.dataset.id) return;
+    const org = buscarOrgPorId(card.dataset.id);
+    if (org) seleccionarInstitucionLista(org, card);
+  });
+  area.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.ocard[data-id]');
+    if (!card?.dataset.id) return;
+    e.preventDefault();
+    const org = buscarOrgPorId(card.dataset.id);
+    if (org) seleccionarInstitucionLista(org, card);
+  });
 }
 
 function abrirModal(oStr) {
-  const o  = JSON.parse(oStr);
-  const c  = CFG[o.tipo === 'discapacidad' ? 'disc' : o.tipo === 'cuidado' ? 'cuid' : 'mesa'] || CFG.disc;
-  const lb = o.tipo==='discapacidad'?'♿ Discapacidad':o.tipo==='cuidado'?'💚 Oferta de cuidados':'🤝 Mesa de cuidado';
-  document.getElementById('mbadge').textContent  = lb;
-  document.getElementById('mbadge').style.cssText = `background:${c.bg};color:${c.c}`;
-  document.getElementById('mn').textContent = o.n;
-  const campos = [
-    ['📍 Dirección',   o.d],['🏙 Comuna',o.c],['🏘 Barrio',o.barrio],
-    ['♿ Discapacidades',(o.discs||[]).join(', ')],['📋 Programa',o.programa],
-    ['📌 Dimensión PP',o.eje||o.dim],['🏢 Sector',o.sec],['💰 Costo',o.cos],
-    ['👥 Cupos',o.cupos],['🌍 Cobertura',o.cobertura],['👤 Población',o.poblacion],
-    ['📋 Requisitos',o.req],['🎯 Servicios',o.srv?o.srv.replace(/\n/g,', '):null],
-    ['📞 Teléfono',o.tel],['✉ Email/Web',o.email],['🔗 Nivel PP',o.niv],
-  ];
-  document.getElementById('mbody').innerHTML = campos
-    .filter(([,v])=>v&&String(v).trim()&&v!=='nan')
-    .map(([l,v])=>`<div class="mc"><span class="mcl">${l}</span><span class="mcv">${v}</span></div>`)
-    .join('');
-  document.getElementById('modal').classList.add('open');
+  const o = typeof oStr === 'string' ? JSON.parse(oStr) : oStr;
+  abrirFichaDesdeMapa(o);
 }
-function cerrar(){document.getElementById('modal').classList.remove('open');}
-document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)cerrar();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar();});
+
+function cerrar() {
+  cerrarFichaPanel();
+  document.getElementById('modal')?.classList.remove('open');
+}
+
+document.getElementById('mapa-ficha-cerrar')?.addEventListener('click', cerrarFichaPanel);
+document.getElementById('modal')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) cerrar();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('modal-prod-ubic')?.classList.contains('open')) cerrarMapaProducto();
+  else if (document.getElementById('mapa-ficha')?.classList.contains('open')) cerrarFichaPanel();
+  else cerrar();
+});
 
 // Exponer al ámbito global porque los onclick del HTML los necesitan
-window.setTab       = setTab;
-window.volverVista  = volverVista;
-window.renderCards  = renderCards;
-window.abrirModal   = abrirModal;
-window.cerrar       = cerrar;
+window.setTab           = setTab;
+window.volverVista      = volverVista;
+window.volverSmart      = volverSmart;
+window.renderCards      = renderCards;
+window.toggleVistaSinSede = toggleVistaSinSede;
+window.abrirModal       = abrirModal;
+window.seleccionarInstitucionLista = seleccionarInstitucionLista;
+window.abrirFichaDesdeMapa = abrirFichaDesdeMapa;
+window.cerrar           = cerrar;
+window.cerrarFichaPanel = cerrarFichaPanel;
+window.cerrarMapaProducto = cerrarMapaProducto;
+window.abrirMapaProducto  = abrirMapaProducto;
 
 // Iniciar
 document.getElementById('loading').classList.add('hide');
-setTimeout(initMapa, 50);
+construirUIPanelFiltros();
+document.getElementById('btn-sin-sede')?.addEventListener('click', toggleVistaSinSede);
+initPanelCardsClick();
+setTimeout(() => {
+  initMapa();
+  syncSrvCatBar();
+  actualizarContadorSinSede();
+  renderCards();
+}, 50);
 initProductos();
 
 function recalcMapaSize() {

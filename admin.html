@@ -98,10 +98,19 @@ tr:hover td{background:var(--azul-xs)}
 }
 .field textarea{resize:vertical;min-height:60px}
 .field .hint{font-size:10px;color:var(--txt2);margin-top:3px}
+.tel-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.tel-row{display:flex;gap:8px;align-items:center}
+.tel-row input{flex:1;min-width:0}
+.tel-row-del{flex-shrink:0;width:38px;height:38px;padding:0;border:1px solid var(--borde);border-radius:7px;background:var(--blanco);color:var(--txt2);font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s}
+.tel-row-del:hover:not(:disabled){background:var(--rojo-bg);color:var(--rojo);border-color:#fecaca}
+.tel-row-del:disabled{opacity:.35;cursor:not-allowed}
+.btn-tel-add{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px dashed var(--azul-med);border-radius:7px;background:var(--azul-xs);color:var(--azul-med);font-size:12px;font-weight:600;cursor:pointer}
+.btn-tel-add:hover{background:#dbeafe;border-style:solid}
 .fieldset-titulo{font-size:11px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.4px;margin:8px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--borde);grid-column:1/-1}
 .checks{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.check{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
-.check input{width:auto}
+.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 14px;padding:8px 0;align-items:start}
+.check{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;line-height:1.25}
+.check input{width:auto;flex-shrink:0}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:var(--azul);color:white;padding:12px 18px;border-radius:9px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;animation:slideIn .3s ease;max-width:380px}
@@ -167,7 +176,7 @@ tr:hover td{background:var(--azul-xs)}
   <section class="page active" id="page-instituciones">
     <div class="toolbar">
       <div class="toolbar-l">
-        <input class="search" id="busc-inst"   placeholder="🔍 Buscar por nombre, dirección, comuna…">
+        <input class="search" id="busc-inst"   placeholder="🔍 Buscar por nombre, dirección, comuna, barrio…">
         <select class="select" id="filt-cat-inst">
           <option value="">Todas las categorías</option>
           <option value="discapacidad">♿ Discapacidad</option>
@@ -211,7 +220,7 @@ tr:hover td{background:var(--azul-xs)}
 </main>
 
 <!-- ===== MODAL: institución ===== -->
-<div class="mbg" id="modal-inst">
+<div class="mbg" id="modal-inst" data-no-backdrop-close>
   <div class="modal">
     <div class="modal-hdr">
       <h2 id="modal-inst-titulo">Nueva institución</h2>
@@ -248,6 +257,14 @@ tr:hover td{background:var(--azul-xs)}
 
           <div class="fieldset-titulo">Ubicación</div>
           <div class="field full">
+            <label class="check-row" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-weight:600">
+              <input type="checkbox" id="inst-sin_sede" style="margin-top:3px">
+              <span>Sin sede física (no geolocalizar en el mapa)</span>
+            </label>
+            <div class="hint">Sin sede: dirección <strong>SIN NOMENCLATURA</strong> (texto descriptivo), comuna <strong>17 - SIN SEDE FISICA</strong>. Fuera de Medellín: comuna <strong>00 - FUERA DE MEDELLIN</strong> (código 00).</div>
+          </div>
+          <div id="inst-ubicacion-campos">
+          <div class="field full">
             <label>Dirección</label>
             <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
               <input type="text" id="inst-direccion" style="flex:1;min-width:200px" placeholder="Ej: Calle 44 # 68-50" autocomplete="street-address">
@@ -280,15 +297,23 @@ tr:hover td{background:var(--azul-xs)}
             <label>Longitud <span class="badge badge-disc" id="geocod-lng-badge" style="display:none;font-weight:600">auto</span></label>
             <input type="number" step="0.0000001" id="inst-longitud" placeholder="-75.5636">
           </div>
+          </div>
 
           <div class="fieldset-titulo">Contacto</div>
-          <div class="field">
-            <label>Teléfono</label>
-            <input type="text" id="inst-telefono">
+          <div class="field full">
+            <label>Teléfonos</label>
+            <div id="inst-telefonos-list" class="tel-list" aria-live="polite"></div>
+            <button type="button" class="btn-tel-add" id="btn-inst-tel-add" title="Añadir otro número">+ Agregar teléfono</button>
+            <div class="hint">Un número por campo. Usa + para añadir y × para quitar si ya no aplica.</div>
           </div>
           <div class="field">
-            <label>Email / Página web</label>
-            <input type="text" id="inst-email">
+            <label>Correo electrónico</label>
+            <input type="email" id="inst-email" placeholder="contacto@organizacion.org" autocomplete="email">
+          </div>
+          <div class="field full">
+            <label>Página web</label>
+            <input type="url" id="inst-pagina_web" placeholder="https://www.ejemplo.org">
+            <div class="hint">Enlace público de la institución (se muestra aparte del correo en la ficha del mapa).</div>
           </div>
           <div class="field full">
             <label>Persona de contacto</label>
@@ -297,8 +322,13 @@ tr:hover td{background:var(--azul-xs)}
 
           <div class="fieldset-titulo">Detalle de la oferta</div>
           <div class="field full">
-            <label>Servicios ofrecidos</label>
-            <textarea id="inst-servicios"></textarea>
+            <label>Categorías de servicio (oferta institucional)</label>
+            <div class="hint">Marca todas las que aplican — se usa para filtrar en el mapa. El catálogo se define en la base de datos.</div>
+            <div id="inst-servicios-cat" class="checks-grid" aria-live="polite"><span class="hint">Cargando catálogo…</span></div>
+          </div>
+          <div class="field full">
+            <label>Complemento u otros servicios (texto libre, opcional)</label>
+            <textarea id="inst-servicios" placeholder="Detalle adicional no cubierto por las categorías anteriores"></textarea>
           </div>
           <div class="field">
             <label>Costo</label>
@@ -341,9 +371,9 @@ tr:hover td{background:var(--azul-xs)}
 
           <div class="fieldset-titulo">Discapacidad <span style="font-weight:400;text-transform:none;color:var(--txt2);font-size:10px;letter-spacing:0">(solo aplica si la categoría es "Discapacidad")</span></div>
           <div class="field full">
-            <label>Tipos de discapacidad</label>
-            <input type="text" id="inst-tipos_discapacidad" placeholder="Separa con comas: Intelectual, Fisica, Visual">
-            <div class="hint">Tipos comunes: Intelectual, Fisica, Mental, Visual, Auditiva, Múltiple</div>
+            <label>Tipos de discapacidad atendidos (lista estandarizada)</label>
+            <div class="hint">Selecciona con casillas para evitar nombres distintos que no filtran bien.</div>
+            <div id="inst-discapacidad-cat" class="checks-grid" aria-live="polite"><span class="hint">Cargando catálogo…</span></div>
           </div>
           <div class="field full">
             <div class="checks">
@@ -364,8 +394,8 @@ tr:hover td{background:var(--azul-xs)}
 </div>
 
 <!-- ===== MODAL: producto ===== -->
-<div class="mbg" id="modal-prod">
-  <div class="modal" style="max-width:560px">
+<div class="mbg" id="modal-prod" data-no-backdrop-close>
+  <div class="modal" style="max-width:640px">
     <div class="modal-hdr">
       <h2 id="modal-prod-titulo">Nuevo producto</h2>
       <button class="modal-x" data-close="modal-prod">✕</button>
@@ -374,22 +404,78 @@ tr:hover td{background:var(--azul-xs)}
       <form id="form-prod">
         <input type="hidden" id="prod-id">
         <div class="form-grid">
-          <div class="field">
+
+          <div class="fieldset-titulo">Identificación</div>
+          <div class="field full">
             <label>Categoría *</label>
-            <input type="text" id="prod-categoria" required placeholder="Ej: MOVILIDAD, AUDITIVO">
+            <input type="text" id="prod-categoria" list="prod-categorias-list" required
+              placeholder="Elija una existente o escriba una nueva">
+            <datalist id="prod-categorias-list"></datalist>
+            <div class="hint">Mismas categorías que ya tienen los productos cargados (columna del directorio). Puede elegir de la lista o escribir una nueva.</div>
           </div>
-          <div class="field">
-            <label>Proveedor *</label>
-            <input type="text" id="prod-proveedor" required>
+          <div class="field full">
+            <label>Proveedor / punto de atención *</label>
+            <input type="text" id="prod-proveedor" required placeholder="Nombre del proveedor o tienda">
           </div>
           <div class="field full">
             <label>Oferta / descripción</label>
-            <textarea id="prod-oferta"></textarea>
+            <textarea id="prod-oferta" placeholder="Qué productos o ayudas ofrece"></textarea>
+          </div>
+          <div class="fieldset-titulo">Contacto</div>
+          <div class="field full">
+            <label>Persona de contacto</label>
+            <input type="text" id="prod-contacto_persona" placeholder="Nombre o cargo (opcional)">
           </div>
           <div class="field full">
-            <label>Contacto</label>
-            <input type="text" id="prod-contacto">
+            <label>Teléfonos</label>
+            <div id="prod-telefonos-list" class="tel-list" aria-live="polite"></div>
+            <button type="button" class="btn-tel-add" id="btn-prod-tel-add" title="Añadir otro número">+ Agregar teléfono</button>
+            <div class="hint">Un número por campo. Usa + para añadir y × para quitar.</div>
           </div>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="prod-email" placeholder="contacto@proveedor.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Página web</label>
+            <input type="url" id="prod-pagina_web" placeholder="https://www.ejemplo.com">
+          </div>
+
+          <div class="fieldset-titulo">Ubicación</div>
+          <div class="field full">
+            <label>Dirección</label>
+            <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+              <input type="text" id="prod-direccion" style="flex:1;min-width:200px" placeholder="Ej: Calle 44 # 68-50" autocomplete="street-address">
+              <button type="button" class="btn btn-primary" id="btn-geocodificar-prod" style="flex-shrink:0">📍 Geocodificar</button>
+            </div>
+            <span id="prod-geocod-status" style="display:none" aria-live="polite"></span>
+            <div class="hint">Al escribir la dirección se actualizan comuna, barrio y coordenadas automáticamente (puedes afinar con el mapa).</div>
+          </div>
+          <div class="field full">
+            <label>Complemento dirección</label>
+            <input type="text" id="prod-direccion_complemento" placeholder="Local, piso, centro comercial…">
+          </div>
+          <div class="field full" id="prod-geocod-mapa-wrap" style="display:none">
+            <label style="margin-bottom:6px;display:block">Vista previa · arrastra el marcador para afinar</label>
+            <div id="prod-geocod-mapa" style="height:200px;width:100%;border-radius:8px;border:1px solid var(--borde)"></div>
+          </div>
+          <div class="field">
+            <label>Comuna</label>
+            <input type="text" id="prod-comuna" placeholder="Ej: 10 - LA CANDELARIA">
+          </div>
+          <div class="field">
+            <label>Barrio</label>
+            <input type="text" id="prod-barrio">
+          </div>
+          <div class="field">
+            <label>Latitud <span class="badge badge-prod" id="prod-geocod-lat-badge" style="display:none;font-weight:600">auto</span></label>
+            <input type="number" step="0.0000001" id="prod-latitud" placeholder="6.2518">
+          </div>
+          <div class="field">
+            <label>Longitud <span class="badge badge-prod" id="prod-geocod-lng-badge" style="display:none;font-weight:600">auto</span></label>
+            <input type="number" step="0.0000001" id="prod-longitud" placeholder="-75.5636">
+          </div>
+
         </div>
       </form>
     </div>

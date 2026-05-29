@@ -107,6 +107,26 @@ function txt(v) {
   return s;
 }
 
+/** Separa columna legacy «E-mail / Página Web» en email y pagina_web. */
+function parseEmailYWeb(raw) {
+  const s = txt(raw);
+  if (!s) return { email: null, pagina_web: null };
+  const partes = s.split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
+  const urls = partes.filter((p) =>
+    /^https?:\/\//i.test(p) || /^www\./i.test(p) || (p.includes('.') && !p.includes('@')),
+  );
+  const mails = partes.filter((p) => p.includes('@'));
+  let pagina_web = urls[0] || null;
+  if (pagina_web && !/^https?:\/\//i.test(pagina_web)) {
+    pagina_web = `https://${pagina_web}`;
+  }
+  const resto = partes.filter((p) => p !== urls[0]);
+  const email = mails.length
+    ? mails.join(' ')
+    : (resto.length ? resto.join(' ') : (urls.length ? null : s));
+  return { email: email || null, pagina_web };
+}
+
 function bool(v) {
   if (v === null || v === undefined || v === '') return null;
   const s = String(v).trim().toLowerCase();
@@ -160,16 +180,14 @@ async function migrarDiscapacidad() {
         nombre,
         direccion,
         direccion_contrastada:        txt(f['Dirección contrastada'] || f['Direcciףn contrastada']),
-        latitud_verdadera:            lat(f['Latitud verdadera']),
-        longitud_verdadera:           lon(f['Longitud verdadera']),
-        latitud:                      lat(f['Latitud']),
-        longitud:                     lon(f['Longitud']),
+        latitud:                      lat(f['Latitud']) ?? lat(f['Latitud verdadera']),
+        longitud:                     lon(f['Longitud']) ?? lon(f['Longitud verdadera']),
         distrito:                     txt(f['Distrito']),
         otro_municipio:               txt(f['Otro municipio']),
         comuna:                       txt(f['Comuna']),
         barrio:                       txt(f['Barrio']),
         telefono:                     txt(f['Teléfonos'] || f['Telיfonos'] || f['Telefonos']),
-        email:                        txt(f['E-mail/Página Web'] || f['E-mail/Pבgina Web']),
+        ...parseEmailYWeb(f['E-mail/Página Web'] || f['E-mail/Pבgina Web']),
         servicios:                    txt(f['Servicios que Ofrece']),
         costo:                        txt(f['Costo']),
         requisitos:                   txt(f['Requisitos']),
@@ -235,7 +253,7 @@ async function migrarCuidado() {
     cupos:              txt(f['Cupos de atención'] || f['Cupos de atenciуn']),
     cobertura:          txt(f['Cobertura del proyecto']),
     poblacion_objetivo: txt(f['Población Objetivo'] || f['Poblaciуn Objetivo']),
-    email:              txt(f['E-mail / Página Web'] || f['E-mail / Pбgina Web']),
+    ...parseEmailYWeb(f['E-mail / Página Web'] || f['E-mail / Pбgina Web']),
     telefono:           txt(f['Télefono'] || f['Tйlefono']),
   }))
   .filter(r => r.nombre);
@@ -268,7 +286,7 @@ async function migrarMesas() {
     cupos:              txt(f['Cupos de atención']),
     cobertura:          txt(f['Cobertura del proyecto']),
     poblacion_objetivo: txt(f['Población Objetivo']),
-    email:              txt(f['E-mail / Página Web']),
+    ...parseEmailYWeb(f['E-mail / Página Web']),
     telefono:           txt(f['Télefono']),
   }))
   .filter(r => r.nombre);

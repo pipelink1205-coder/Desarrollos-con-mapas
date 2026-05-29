@@ -66,8 +66,7 @@ CREATE TABLE public.instituciones (
   barrio                      TEXT,
   latitud                     NUMERIC(10, 7),
   longitud                    NUMERIC(10, 7),
-  latitud_verdadera           NUMERIC(10, 7),
-  longitud_verdadera          NUMERIC(10, 7),
+  sin_sede                    BOOLEAN NOT NULL DEFAULT false,
 
   -- Contacto
   telefono                    TEXT,
@@ -205,8 +204,9 @@ SELECT
       THEN trim(direccion)
     ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
   END                  AS d,
-  COALESCE(latitud_verdadera, latitud)   AS lat,
-  COALESCE(longitud_verdadera, longitud) AS lon,
+  latitud   AS lat,
+  longitud  AS lon,
+  sin_sede  AS sin_sede,
   comuna               AS c,
   barrio,
   telefono             AS tel,
@@ -240,8 +240,9 @@ SELECT
       THEN trim(direccion)
     ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
   END                  AS d,
-  COALESCE(latitud_verdadera, latitud)   AS lat,
-  COALESCE(longitud_verdadera, longitud) AS lon,
+  latitud   AS lat,
+  longitud  AS lon,
+  sin_sede  AS sin_sede,
   comuna               AS c,
   barrio,
   telefono             AS tel,
@@ -273,8 +274,9 @@ SELECT
       THEN trim(direccion)
     ELSE nullif(trim(coalesce(direccion_complemento, '')), '')
   END                  AS d,
-  COALESCE(latitud_verdadera, latitud)   AS lat,
-  COALESCE(longitud_verdadera, longitud) AS lon,
+  latitud   AS lat,
+  longitud  AS lon,
+  sin_sede  AS sin_sede,
   comuna               AS c,
   barrio,
   telefono             AS tel,
