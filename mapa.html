@@ -272,19 +272,18 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   .mtab .mcnt{font-size:9px;padding:0 4px}
   .srv-cat-chip{font-size:9px;padding:4px 9px}
 
-  /* Scroll nativo de página (touch fiable); el mapa queda fijo arriba */
+  /* Mitad mapa fija + mitad panel; solo el listado hace scroll (touch) */
+  :root{--mob-mapa-parte:50%}
   html,body{
-    height:auto;
-    min-height:100dvh;
-    max-height:none;
-    overflow-x:hidden;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
+    height:100dvh;
+    max-height:100dvh;
+    overflow:hidden;
   }
   body{
     display:flex;
     flex-direction:column;
-    min-height:100dvh;
+    height:100dvh;
+    max-height:100dvh;
   }
   body.mob-ficha-open{
     overflow:hidden;
@@ -301,58 +300,66 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 
   .layout,
   #lay-mapa.layout{
-    flex:1 0 auto;
-    flex-direction:column;
+    flex:1 1 0;
     min-height:0;
-    overflow:visible;
+    overflow:hidden;
+    flex-direction:column;
+    display:flex;
+  }
+  #lay-prod.layout{
+    flex:1 1 0;
+    min-height:0;
+    overflow:hidden;
+  }
+  #lay-prod .prod-page{
+    height:100%;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   .mwrap{
-    flex:0 0 auto;
+    flex:0 0 var(--mob-mapa-parte);
     width:100%;
-    min-height:200px;
-    height:44vh;
-    height:44dvh;
-    max-height:50vh;
-    max-height:50dvh;
-    position:sticky;
-    top:0;
-    z-index:20;
+    min-height:160px;
+    position:relative;
+    z-index:2;
     touch-action:none;
-    transition:height .25s ease,max-height .25s ease;
+    overflow:hidden;
   }
-  .mwrap.mob-inst-focus{
-    height:50vh;
-    height:50dvh;
-    max-height:56vh;
-    max-height:56dvh;
-  }
+  #mapa{width:100%;height:100%}
   .panel{
     width:100% !important;
-    flex:1 0 auto;
-    min-height:42dvh;
-    max-height:none;
-    overflow:visible;
+    flex:1 1 0;
+    min-height:0;
+    overflow:hidden;
     border-left:none;
-    border-top:1px solid rgba(255,255,255,.12);
+    border-top:2px solid rgba(255,255,255,.15);
     display:flex;
     flex-direction:column;
+    background:var(--blanco);
   }
   .phead,.pkpis,.pfiltros,.phead-sede-row{flex-shrink:0}
   .cards-stack{
-    flex:1 0 auto;
+    flex:1 1 0;
     min-height:0;
-    height:auto;
-    overflow:visible;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
   }
   .pcards{
-    flex:none;
-    height:auto;
-    min-height:240px;
-    overflow:visible;
-    touch-action:auto;
-    padding-bottom:max(20px,env(safe-area-inset-bottom));
+    flex:1 1 0;
+    min-height:0;
+    height:0;
+    overflow-y:scroll;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    overscroll-behavior-y:contain;
+    padding-bottom:max(12px,env(safe-area-inset-bottom));
   }
-  .pcards .empty{flex:none;min-height:200px}
+  .pcards .empty{
+    flex:1;
+    min-height:120px;
+  }
 
   /* Ficha: hoja inferior a pantalla completa con scroll interno */
   .mapa-ficha{
