@@ -272,8 +272,8 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   .mtab .mcnt{font-size:9px;padding:0 4px}
   .srv-cat-chip{font-size:9px;padding:4px 9px}
 
-  /* Mitad mapa fija + mitad panel; solo el listado hace scroll (touch) */
-  :root{--mob-mapa-parte:50%}
+  /* Mapa ~35% fijo arriba + listado con scroll (el mapa no desaparece del todo) */
+  :root{--mob-mapa-parte:35%}
   html,body{
     height:100dvh;
     max-height:100dvh;
@@ -319,7 +319,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   .mwrap{
     flex:0 0 var(--mob-mapa-parte);
     width:100%;
-    min-height:160px;
+    min-height:140px;
     position:relative;
     z-index:2;
     touch-action:none;
