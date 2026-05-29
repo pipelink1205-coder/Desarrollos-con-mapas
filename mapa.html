@@ -272,22 +272,51 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   .mtab .mcnt{font-size:9px;padding:0 4px}
   .srv-cat-chip{font-size:9px;padding:4px 9px}
 
-  html,body{height:100dvh;max-height:100dvh}
+  /* Scroll nativo de página (touch fiable); el mapa queda fijo arriba */
+  html,body{
+    height:auto;
+    min-height:100dvh;
+    max-height:none;
+    overflow-x:hidden;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    min-height:100dvh;
+  }
+  body.mob-ficha-open{
+    overflow:hidden;
+    height:100dvh;
+    max-height:100dvh;
+    width:100%;
+    position:fixed;
+    touch-action:none;
+  }
+  body.mob-ficha-open .mapa-ficha,
+  body.mob-ficha-open .mapa-ficha-body{
+    touch-action:pan-y;
+  }
 
+  .layout,
   #lay-mapa.layout{
-    flex:1 1 0;
+    flex:1 0 auto;
     flex-direction:column;
     min-height:0;
-    overflow:hidden;
+    overflow:visible;
   }
   .mwrap{
     flex:0 0 auto;
     width:100%;
-    min-height:220px;
+    min-height:200px;
     height:44vh;
     height:44dvh;
     max-height:50vh;
     max-height:50dvh;
+    position:sticky;
+    top:0;
+    z-index:20;
     touch-action:none;
     transition:height .25s ease,max-height .25s ease;
   }
@@ -299,10 +328,10 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   }
   .panel{
     width:100% !important;
-    flex:1 1 0;
-    min-height:0;
+    flex:1 0 auto;
+    min-height:42dvh;
     max-height:none;
-    overflow:hidden;
+    overflow:visible;
     border-left:none;
     border-top:1px solid rgba(255,255,255,.12);
     display:flex;
@@ -310,24 +339,63 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   }
   .phead,.pkpis,.pfiltros,.phead-sede-row{flex-shrink:0}
   .cards-stack{
-    flex:1 1 0;
+    flex:1 0 auto;
     min-height:0;
-    height:0;
-    overflow:hidden;
+    height:auto;
+    overflow:visible;
   }
   .pcards{
+    flex:none;
+    height:auto;
+    min-height:240px;
+    overflow:visible;
+    touch-action:auto;
+    padding-bottom:max(20px,env(safe-area-inset-bottom));
+  }
+  .pcards .empty{flex:none;min-height:200px}
+
+  /* Ficha: hoja inferior a pantalla completa con scroll interno */
+  .mapa-ficha{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    top:auto;
+    width:100%;
+    max-width:none;
+    max-height:82dvh;
+    height:min(82dvh,82vh);
+    min-height:0;
+    margin:0;
+    border-radius:14px 14px 0 0;
+    transform:none !important;
+    z-index:1300;
+    touch-action:pan-y;
+  }
+  .mapa-ficha.open{
+    display:flex !important;
+    transform:none !important;
+  }
+  .mapa-ficha[hidden]{display:none !important}
+  .mapa-ficha-hdr,.mapa-ficha-aviso{flex-shrink:0}
+  .mapa-ficha-body{
     flex:1 1 0;
     min-height:0;
     height:0;
-    max-height:none;
-    overflow-y:auto;
+    overflow-y:scroll;
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
-    overscroll-behavior-y:contain;
     touch-action:pan-y;
+    overscroll-behavior-y:contain;
   }
-  .mapa-ficha{left:8px;right:8px;width:auto;max-height:72vh;top:auto;bottom:10px;transform:none}
-  .mapa-ficha.open{transform:none}
+
+  .filt-panel.open{
+    position:fixed;
+    inset:0;
+    z-index:1100;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
   .mley{
     bottom:8px;
     right:6px;
@@ -2126,6 +2194,7 @@ function syncMobMapUi() {
   const zonaActiva = movil && (!!zona || vistaSinSede);
   wrap.classList.toggle('mob-inst-focus', instFocus);
   wrap.classList.toggle('mob-zona-activa', zonaActiva);
+  document.body.classList.toggle('mob-ficha-open', movil && fichaOpen);
   recalcMapaSize();
 }
 
