@@ -272,8 +272,8 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   .mtab .mcnt{font-size:9px;padding:0 4px}
   .srv-cat-chip{font-size:9px;padding:4px 9px}
 
-  /* Mapa ~35% fijo arriba + listado con scroll (el mapa no desaparece del todo) */
-  :root{--mob-mapa-parte:35%}
+  /* Mapa fijo arriba + listado con scroll independiente */
+  :root{--mob-mapa-parte:45%}
   html,body{
     height:100dvh;
     max-height:100dvh;
@@ -293,8 +293,8 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     position:fixed;
     touch-action:none;
   }
-  body.mob-ficha-open .mapa-ficha,
-  body.mob-ficha-open .mapa-ficha-body{
+  body.mob-ficha-open .mapa-ficha.ficha-fullscreen,
+  body.mob-ficha-open .mapa-ficha.ficha-fullscreen .mapa-ficha-body{
     touch-action:pan-y;
   }
 
@@ -361,40 +361,91 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     min-height:120px;
   }
 
-  /* Ficha: hoja inferior a pantalla completa con scroll interno */
+  /* Globo compacto dentro de .mwrap (pin / tarjeta); fullscreen solo con .ficha-fullscreen */
   .mapa-ficha{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
+    position:absolute;
+    left:8px;
+    right:8px;
+    bottom:10px;
     top:auto;
-    width:100%;
+    width:auto;
     max-width:none;
-    max-height:82dvh;
-    height:min(82dvh,82vh);
+    max-height:55%;
+    height:auto;
     min-height:0;
     margin:0;
-    border-radius:14px 14px 0 0;
+    border-radius:12px;
     transform:none !important;
-    z-index:1300;
+    z-index:850;
     touch-action:pan-y;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
   }
   .mapa-ficha.open{
     display:flex !important;
+    flex-direction:column;
     transform:none !important;
   }
   .mapa-ficha[hidden]{display:none !important}
-  .mapa-ficha-hdr,.mapa-ficha-aviso{flex-shrink:0}
+  .mapa-ficha-hdr{
+    flex-shrink:0;
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding-right:44px;
+  }
+  .mapa-ficha-aviso{flex-shrink:0}
+  .mapa-ficha-x{
+    position:absolute;
+    top:8px;
+    right:8px;
+    z-index:3;
+    box-shadow:0 1px 6px rgba(15,23,42,.15);
+  }
   .mapa-ficha-body{
-    flex:1 1 0;
+    flex:none;
     min-height:0;
-    height:0;
-    overflow-y:scroll;
+    height:auto;
+    overflow:visible;
+  }
+  .mapa-ficha.ficha-fullscreen{
+    position:fixed;
+    inset:0;
+    left:0;
+    right:0;
+    top:0;
+    bottom:0;
+    width:100%;
+    max-width:none;
+    max-height:100dvh;
+    height:auto;
+    border-radius:0;
+    z-index:2000;
+    overflow-y:auto;
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
-    touch-action:pan-y;
-    overscroll-behavior-y:contain;
   }
+  .mapa-ficha.ficha-fullscreen .mapa-ficha-hdr{
+    position:sticky;
+    top:0;
+    z-index:2001;
+    padding-right:44px;
+    background:var(--gris);
+    border-bottom:1px solid var(--borde);
+  }
+  .mapa-ficha.ficha-fullscreen .mapa-ficha-x{
+    position:fixed;
+    top:max(8px,env(safe-area-inset-top));
+    right:max(8px,env(safe-area-inset-right));
+    z-index:2002;
+  }
+  .mapa-ficha.ficha-fullscreen .mapa-ficha-body{
+    flex:none;
+    overflow:visible;
+  }
+  .mapa-ficha.ficha-fullscreen .btn-ficha-mob-full{display:none}
 
   .filt-panel.open{
     position:fixed;
@@ -1477,8 +1528,15 @@ function bindOrgPopup(layer, o, cfg) {
       <button type="button" class="btn-ficha-popup" data-org-id="${o.id}" style="margin-top:8px;width:100%;padding:5px;background:#1a3a5c;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500">📋 Ficha completa</button>
     </div>`, { maxWidth: 285 });
 
-  layer.on('popupopen', (ev) => {
-    const btn = ev.popup?.getElement()?.querySelector('.btn-ficha-popup');
+  layer.on('popupopen', () => {
+    if (esVistaMovil()) {
+      setTimeout(() => {
+        try { layer.closePopup(); } catch { /* */ }
+        abrirFichaGloboMovil(o);
+      }, 0);
+      return;
+    }
+    const btn = document.querySelector('.leaflet-popup .btn-ficha-popup');
     if (btn) {
       btn.onclick = (e) => {
         e.preventDefault();
@@ -2201,7 +2259,8 @@ function syncMobMapUi() {
   const zonaActiva = movil && (!!zona || vistaSinSede);
   wrap.classList.toggle('mob-inst-focus', instFocus);
   wrap.classList.toggle('mob-zona-activa', zonaActiva);
-  document.body.classList.toggle('mob-ficha-open', movil && fichaOpen);
+  const fichaFullscreen = !!(panelFicha && panelFicha.classList.contains('ficha-fullscreen'));
+  document.body.classList.toggle('mob-ficha-open', movil && fichaOpen && fichaFullscreen);
   recalcMapaSize();
 }
 
@@ -2232,10 +2291,14 @@ function actualizarAvisoFichaMapa(o, encuadro) {
 
 function cerrarFichaPanel() {
   const panel = document.getElementById('mapa-ficha');
-  if (panel) {
-    panel.classList.remove('open');
-    panel.hidden = true;
+  if (!panel) return;
+  if (esVistaMovil() && panel.classList.contains('ficha-fullscreen')) {
+    panel.classList.remove('ficha-fullscreen');
+    syncMobMapUi();
+    return;
   }
+  panel.classList.remove('open', 'ficha-fullscreen');
+  panel.hidden = true;
   document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
   syncMobMapUi();
 }
@@ -2252,10 +2315,24 @@ function abrirFichaPanel(o) {
     badge.style.cssText = `background:${c.bg};color:${c.c}`;
   }
   if (tit) tit.textContent = o.n || 'Institución';
-  body.innerHTML = htmlFichaInstitucion(o);
+  const btnFullMob = esVistaMovil() && !panel.classList.contains('ficha-fullscreen')
+    ? '<button type="button" class="btn-ficha-mob-full" style="margin-top:10px;width:100%;padding:8px;background:#1a3a5c;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📋 Ver ficha completa</button>'
+    : '';
+  body.innerHTML = htmlFichaInstitucion(o) + btnFullMob;
   panel.hidden = false;
   panel.classList.add('open');
   syncMobMapUi();
+}
+
+/** Globo compacto en móvil (dentro de .mwrap), sin pantalla completa. */
+function abrirFichaGloboMovil(o) {
+  if (!o) return;
+  const panel = document.getElementById('mapa-ficha');
+  if (panel) panel.classList.remove('ficha-fullscreen');
+  resaltarTarjetaLista(o.id);
+  cerrarTodosPopupsMapa();
+  abrirFichaPanel(o);
+  actualizarAvisoFichaMapa(o, !!coordsOrgMapa(o));
 }
 
 function cerrarTodosPopupsMapa() {
@@ -2266,13 +2343,16 @@ function cerrarTodosPopupsMapa() {
   syncMobMapUi();
 }
 
-/** Ficha completa a la derecha del mapa, junto al listado (solo botón del globo). */
+/** Ficha completa (en móvil: pantalla completa con .ficha-fullscreen). */
 function abrirFichaDesdeMapa(o) {
   if (!o) return;
   resaltarTarjetaLista(o.id);
   cerrarTodosPopupsMapa();
   abrirFichaPanel(o);
   actualizarAvisoFichaMapa(o, !!coordsOrgMapa(o));
+  const panel = document.getElementById('mapa-ficha');
+  if (esVistaMovil() && panel) panel.classList.add('ficha-fullscreen');
+  syncMobMapUi();
   if (mapa && coordsOrgMapa(o) && !vistaSinSede) {
     setTimeout(() => {
       if (window.innerWidth > 720) {
@@ -2294,8 +2374,11 @@ function enfocarInstitucionEnMapa(o, opts = {}) {
     if (window.innerWidth > 720 && soloLista) {
       mapa.panBy([32, 0], { animate: true, duration: 0.35 });
     }
-    if (abrirPopup && mk?.openPopup) {
-      try { mk.openPopup(); } catch { /* */ }
+    if (abrirPopup) {
+      if (esVistaMovil()) abrirFichaGloboMovil(o);
+      else if (mk?.openPopup) {
+        try { mk.openPopup(); } catch { /* */ }
+      }
     }
     syncMobMapUi();
   }, 560);
@@ -2346,6 +2429,15 @@ function cerrar() {
 }
 
 document.getElementById('mapa-ficha-cerrar')?.addEventListener('click', cerrarFichaPanel);
+document.getElementById('mapa-ficha-body')?.addEventListener('click', (e) => {
+  if (!e.target.closest('.btn-ficha-mob-full')) return;
+  e.preventDefault();
+  const panel = document.getElementById('mapa-ficha');
+  if (panel && esVistaMovil()) {
+    panel.classList.add('ficha-fullscreen');
+    syncMobMapUi();
+  }
+});
 document.getElementById('modal')?.addEventListener('click', (e) => {
   if (e.target === e.currentTarget) cerrar();
 });
