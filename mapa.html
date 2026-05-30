@@ -236,32 +236,76 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 
 /* ─── Móvil / tablet estrecha: escritorio (≥901px) sin cambios ─── */
 @media (max-width: 900px) {
+  /* Header 2 filas: logo+título+usuario | stats + Sin sede */
   .hdr{
-    flex-wrap:wrap;
-    align-items:flex-start;
-    gap:8px;
-    padding:8px 10px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-rows:auto auto;
+    flex-wrap:nowrap;
+    gap:3px 6px;
+    padding:4px 10px;
+    align-items:center;
   }
-  .hdr-l{flex:1 1 100%;min-width:0}
-  .hdr h1{font-size:11px;line-height:1.25}
+  .hdr-l{flex:0;min-width:0;grid-column:1;grid-row:1}
   .hdr-l p{display:none}
+  .hdr h1{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hdr-logo{width:26px;height:26px;font-size:13px}
   .hdr-stats{
-    flex:1 1 auto;
-    flex-wrap:wrap;
-    justify-content:flex-start;
-    gap:6px;
+    grid-column:1 / -1;
+    grid-row:2;
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:3px;
+    width:100%;
+    min-width:0;
   }
-  .hstat{padding:3px 6px;font-size:9px}
-  .hstat b{font-size:11px}
+  .hstat{padding:2px 5px;font-size:9px}
+  .hstat b{font-size:10px}
   .hdr-user{
-    flex:1 1 100%;
-    justify-content:flex-end;
+    grid-column:2;
+    grid-row:1;
+    border-top:none;
+    padding-top:0;
+    flex:0;
     margin-left:0;
-    padding-left:0;
-    padding-top:6px;
-    border-left:none;
-    border-top:1px solid rgba(255,255,255,.12);
+    padding-left:6px;
+    border-left:1px solid rgba(255,255,255,.15);
+    gap:4px;
   }
+  .hdr-user-info b{font-size:10px}
+  .hdr-btn{padding:3px 7px;font-size:9px}
+  .mob-only.hdr-sin-sede{
+    display:inline-flex !important;
+    align-items:center;
+    margin-left:auto;
+    flex-shrink:0;
+    font-size:9px;
+    padding:2px 6px;
+    border-radius:6px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .mob-only.hdr-sin-sede.on{
+    background:rgba(37,99,235,.35);
+    border-color:#60a5fa;
+    font-weight:600;
+  }
+  .mob-only.hdr-sin-sede .cnt-sede{
+    display:inline-block;
+    min-width:14px;
+    padding:0 4px;
+    margin-left:3px;
+    border-radius:6px;
+    background:rgba(0,0,0,.2);
+    font-size:9px;
+    font-weight:700;
+  }
+  .phead-sede-row{display:none}
+  .phead{padding:6px 10px}
   .mtabs{padding:4px 4px 0;gap:1px}
   .mtab{
     padding:8px 4px;
@@ -514,6 +558,9 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <div class="hstat" style="border-color:rgba(52,211,153,.4)"><b style="color:#34d399" id="st-cuid">0</b>Cuidados</div>
     <div class="hstat" style="border-color:rgba(251,191,36,.4)"><b style="color:#fbbf24" id="st-mesa">0</b>Mesas</div>
     <div class="hstat" style="border-color:rgba(167,139,250,.4)"><b style="color:#a78bfa" id="st-prod">0</b>Productos</div>
+    <button type="button" class="mob-only hdr-sin-sede pf-sel btn-sin-sede" id="btn-sin-sede-hdr" style="display:none" title="Ofertas sin ubicación física (no aparecen en el mapa)" aria-label="Instituciones sin sede">
+      🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede-hdr">0</span>
+    </button>
   </div>
   <div class="hdr-user">
     <div class="hdr-user-info">
@@ -1655,21 +1702,22 @@ function actualizarLeyenda() {
 
 function actualizarContadorSinSede() {
   const cfg = CFG[tab];
+  if (!cfg) return;
+  const n = String(cfg.data().filter(orgSinSede).length);
   const el = document.getElementById('cnt-sin-sede');
-  if (!cfg || !el) return;
-  el.textContent = String(cfg.data().filter(orgSinSede).length);
+  const elHdr = document.getElementById('cnt-sin-sede-hdr');
+  if (el) el.textContent = n;
+  if (elHdr) elHdr.textContent = n;
 }
 
 function salirVistaSinSede() {
   vistaSinSede = false;
-  const btn = document.getElementById('btn-sin-sede');
-  if (btn) btn.classList.remove('on');
+  document.querySelectorAll('#btn-sin-sede,#btn-sin-sede-hdr').forEach((btn) => btn.classList.remove('on'));
 }
 
 function toggleVistaSinSede() {
   vistaSinSede = !vistaSinSede;
-  const btn = document.getElementById('btn-sin-sede');
-  if (btn) btn.classList.toggle('on', vistaSinSede);
+  document.querySelectorAll('#btn-sin-sede,#btn-sin-sede-hdr').forEach((btn) => btn.classList.toggle('on', vistaSinSede));
   if (vistaSinSede) {
     zona = null;
     orgKey = null;
@@ -2466,6 +2514,7 @@ window.abrirMapaProducto  = abrirMapaProducto;
 document.getElementById('loading').classList.add('hide');
 construirUIPanelFiltros();
 document.getElementById('btn-sin-sede')?.addEventListener('click', toggleVistaSinSede);
+document.getElementById('btn-sin-sede-hdr')?.addEventListener('click', toggleVistaSinSede);
 initPanelCardsClick();
 setTimeout(() => {
   initMapa();
