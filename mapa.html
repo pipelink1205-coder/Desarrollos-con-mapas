@@ -236,7 +236,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 
 /* ─── Móvil / tablet estrecha: escritorio (≥901px) sin cambios ─── */
 @media (max-width: 900px) {
-  /* Header 2 filas: logo+título+usuario | stats + Sin sede */
+  /* Header: logo+título+usuario; fila 2 solo chip Sin sede (stats ocultos) */
   .hdr{
     display:grid;
     grid-template-columns:minmax(0,1fr) auto;
@@ -274,18 +274,21 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     min-width:0;
   }
   .hdr-logo{width:26px;height:26px;font-size:13px;flex-shrink:0}
-  .hdr-stats{
+  .hdr-stats,
+  .hdr-stats-row,
+  .stats-bar{
+    display:none;
+  }
+  .hdr-sinsede-mob,
+  #btn-sin-sede-hdr.sinsede-chip{
     grid-column:1 / -1;
     grid-row:2;
-    display:flex;
-    flex-wrap:nowrap;
-    align-items:center;
-    gap:3px;
+    display:inline-flex !important;
+    justify-content:flex-end;
+    align-self:center;
     width:100%;
-    min-width:0;
+    box-sizing:border-box;
   }
-  .hstat{padding:2px 5px;font-size:9px}
-  .hstat b{font-size:10px}
   .hdr-user{
     grid-column:2;
     grid-row:1;
@@ -598,9 +601,6 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <div class="hstat" style="border-color:rgba(52,211,153,.4)"><b style="color:#34d399" id="st-cuid">0</b>Cuidados</div>
     <div class="hstat" style="border-color:rgba(251,191,36,.4)"><b style="color:#fbbf24" id="st-mesa">0</b>Mesas</div>
     <div class="hstat" style="border-color:rgba(167,139,250,.4)"><b style="color:#a78bfa" id="st-prod">0</b>Productos</div>
-    <button type="button" class="mob-only hdr-sin-sede pf-sel btn-sin-sede" id="btn-sin-sede-hdr" style="display:none" title="Ofertas sin ubicación física (no aparecen en el mapa)" aria-label="Instituciones sin sede">
-      🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede-hdr">0</span>
-    </button>
   </div>
   <div class="hdr-user">
     <div class="hdr-user-info">
@@ -610,6 +610,9 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <a class="hdr-btn" id="btn-admin" href="/admin.html" style="display:none">Panel</a>
     <button class="hdr-btn" id="btn-logout">Salir</button>
   </div>
+  <button type="button" class="mob-only hdr-sin-sede sinsede-chip hdr-sinsede-mob pf-sel btn-sin-sede" id="btn-sin-sede-hdr" style="display:none" title="Ofertas sin ubicación física (no aparecen en el mapa)" aria-label="Instituciones sin sede">
+    🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede-hdr">0</span>
+  </button>
 </div>
 
 <div class="mtabs">
