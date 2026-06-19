@@ -683,8 +683,8 @@ function renderInstituciones() {
           const acc = esAdmin
             ? `<td>
               <div class="tabla-acciones">
-                <button class="icon-btn" data-edit-inst="${i.id}" title="Editar">✏️</button>
-                <button class="icon-btn danger" data-del-inst="${i.id}" title="Borrar">🗑</button>
+                <button class="icon-btn" data-edit-inst="${i.id}" title="Editar" aria-label="Editar institución ${escapar(i.nombre)}">✏️</button>
+                <button class="icon-btn danger" data-del-inst="${i.id}" title="Borrar" aria-label="Borrar institución ${escapar(i.nombre)}">🗑</button>
               </div>
             </td>`
             : '';
@@ -733,8 +733,9 @@ function agregarFilaTelefonoLista(listId, inputClass, valor = '') {
   if (!list) return;
   const row = document.createElement('div');
   row.className = 'tel-row';
+  const idx = list.querySelectorAll('.tel-row').length + 1;
   row.innerHTML = `
-    <input type="tel" class="${inputClass}" placeholder="Ej: 604 123 4567" value="${escapar(valor)}" autocomplete="tel">
+    <input type="tel" class="${inputClass}" placeholder="Ej: 604 123 4567" value="${escapar(valor)}" autocomplete="tel" aria-label="Teléfono ${idx}">
     <button type="button" class="tel-row-del" title="Quitar este teléfono" aria-label="Quitar teléfono">×</button>`;
   row.querySelector('.tel-row-del').addEventListener('click', () => {
     row.remove();
@@ -1076,8 +1077,8 @@ function renderProductos() {
           const acc = esAdmin
             ? `<td>
             <div class="tabla-acciones">
-              <button class="icon-btn" data-edit-prod="${p.id}" title="Editar">✏️</button>
-              <button class="icon-btn danger" data-del-prod="${p.id}" title="Borrar">🗑</button>
+              <button class="icon-btn" data-edit-prod="${p.id}" title="Editar" aria-label="Editar producto ${escapar(p.proveedor || p.oferta || '')}">✏️</button>
+              <button class="icon-btn danger" data-del-prod="${p.id}" title="Borrar" aria-label="Borrar producto ${escapar(p.proveedor || p.oferta || '')}">🗑</button>
             </div>
           </td>`
             : '';
@@ -1263,7 +1264,7 @@ function renderUsuarios() {
             <td>${fecha}</td>
             <td>
               <div class="tabla-acciones">
-                <button class="icon-btn" data-edit-user="${u.id}" title="Editar">✏️</button>
+                <button class="icon-btn" data-edit-user="${u.id}" title="Editar" aria-label="Editar usuario ${escapar(u.nombre || u.email || '')}">✏️</button>
                 ${eres ? '' : `<button class="icon-btn danger" data-del-user="${u.id}" title="Borrar">🗑</button>`}
               </div>
             </td>

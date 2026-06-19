@@ -19,6 +19,9 @@
 }
 html,body{height:100%;overflow:hidden}
 body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.phead-zona-a11y{padding:0 12px 8px;border-bottom:1px solid var(--borde);display:flex;flex-direction:column;gap:4px}
+.phead-zona-a11y .pf-sel{width:100%}
 
 /* HEADER */
 .hdr{background:var(--azul);color:white;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;border-bottom:2px solid rgba(37,99,235,.4)}
@@ -190,7 +193,8 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .prod-h1{font-size:15px;font-weight:700;color:var(--azul);margin-bottom:2px}
 .prod-h2{font-size:11px;color:var(--txt2);margin-bottom:10px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{padding:5px 13px;border-radius:18px;border:1px solid var(--borde);background:var(--blanco);font-size:11px;cursor:pointer;color:var(--txt2);font-weight:500;transition:.15s}
+.chip{padding:5px 13px;border-radius:18px;border:1px solid var(--borde);background:var(--blanco);font-size:11px;cursor:pointer;color:var(--txt2);font-weight:500;transition:.15s;font:inherit}
+button.chip{appearance:none;-webkit-appearance:none}
 .chip.active{background:var(--prod-c);color:white;border-color:var(--prod-c)}
 .chip:hover:not(.active){background:var(--prod-bg);border-color:var(--prod-c);color:var(--prod-c)}
 .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:11px}
@@ -584,12 +588,12 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 <body>
 
 <!-- Overlay de carga inicial -->
-<div class="loading-overlay" id="loading">
-  <div class="spinner"></div>
+<div class="loading-overlay" id="loading" role="status" aria-live="polite" aria-busy="true">
+  <div class="spinner" aria-hidden="true"></div>
   <div>Cargando datos del mapa…</div>
 </div>
 
-<div class="hdr">
+<header class="hdr">
   <div class="hdr-l">
     <div class="hdr-logo">♿</div>
     <div>
@@ -611,17 +615,17 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <a class="hdr-btn" id="btn-admin" href="/admin.html" style="display:none">Panel</a>
     <button class="hdr-btn" id="btn-logout">Salir</button>
   </div>
-  <button type="button" class="mob-only hdr-sin-sede sinsede-chip hdr-sinsede-mob pf-sel btn-sin-sede" id="btn-sin-sede-hdr" style="display:none" title="Ofertas sin ubicación física (no aparecen en el mapa)" aria-label="Instituciones sin sede">
+  <button type="button" class="mob-only hdr-sin-sede sinsede-chip hdr-sinsede-mob pf-sel btn-sin-sede" id="btn-sin-sede-hdr" style="display:none" aria-pressed="false" title="Ofertas sin ubicación física (no aparecen en el mapa)" aria-label="Instituciones sin sede">
     🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede-hdr">0</span>
   </button>
-</div>
+</header>
 
-<div class="mtabs">
-  <button class="mtab disc active" id="mt-disc" onclick="setTab('disc')">♿ Discapacidad <span class="mcnt" id="cnt-disc">0</span></button>
-  <button class="mtab cuid"        id="mt-cuid" onclick="setTab('cuid')">💚 Cuidadores   <span class="mcnt" id="cnt-cuid">0</span></button>
-  <button class="mtab mesa"        id="mt-mesa" onclick="setTab('mesa')">🤝 Mesas        <span class="mcnt" id="cnt-mesa">0</span></button>
-  <button class="mtab prod"        id="mt-prod" onclick="setTab('prod')">🦽 Productos    <span class="mcnt" id="cnt-prod">0</span></button>
-</div>
+<nav class="mtabs" role="tablist" aria-label="Tipo de oferta">
+  <button type="button" class="mtab disc active" id="mt-disc" role="tab" aria-selected="true" aria-controls="lay-mapa" onclick="setTab('disc')">♿ Discapacidad <span class="mcnt" id="cnt-disc">0</span></button>
+  <button type="button" class="mtab cuid"        id="mt-cuid" role="tab" aria-selected="false" aria-controls="lay-mapa" onclick="setTab('cuid')">💚 Cuidadores   <span class="mcnt" id="cnt-cuid">0</span></button>
+  <button type="button" class="mtab mesa"        id="mt-mesa" role="tab" aria-selected="false" aria-controls="lay-mapa" onclick="setTab('mesa')">🤝 Mesas        <span class="mcnt" id="cnt-mesa">0</span></button>
+  <button type="button" class="mtab prod"        id="mt-prod" role="tab" aria-selected="false" aria-controls="lay-prod" onclick="setTab('prod')">🦽 Productos    <span class="mcnt" id="cnt-prod">0</span></button>
+</nav>
 
 <nav id="srv-cat-bar" class="srv-cat-bar vis" aria-label="Filtrar por categoría de servicio">
   <div class="srv-cat-scroll" id="srv-cat-scroll">
@@ -630,16 +634,16 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
   </div>
 </nav>
 
-<div class="layout" id="lay-mapa">
-  <div class="mwrap">
-    <div id="mapa"></div>
-    <div class="mhint" id="mhint">👆 Haz clic en una comuna o corregimiento para explorar</div>
-    <div class="mley" id="mley">
+<div class="layout" id="lay-mapa" role="main" aria-label="Mapa y listado de ofertas">
+  <div class="mwrap" aria-label="Mapa interactivo">
+    <div id="mapa" role="region" aria-label="Mapa de comunas y corregimientos de Medellín. También puede elegir zona en el listado." tabindex="-1"></div>
+    <div class="mhint" id="mhint" aria-live="polite">👆 Haz clic en una comuna o corregimiento para explorar</div>
+    <div class="mley" id="mley" role="region" aria-label="Leyenda del mapa">
       <div class="mley-h">Leyenda</div>
       <div id="ley-punto"></div>
       <div id="ley-heat"></div>
     </div>
-    <aside id="mapa-ficha" class="mapa-ficha" aria-label="Ficha completa" hidden>
+    <aside id="mapa-ficha" class="mapa-ficha" role="dialog" aria-modal="true" aria-labelledby="mapa-ficha-titulo" hidden>
       <div class="mapa-ficha-hdr">
         <div>
           <div class="mbadge" id="mapa-ficha-badge"></div>
@@ -652,17 +656,23 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     </aside>
   </div>
 
-  <div class="panel" id="panel">
+  <aside class="panel" id="panel" aria-label="Listado y filtros de instituciones">
     <div class="phead">
       <div class="phead-top">
-        <div>
-          <div class="ptitulo" id="ptitulo">Medellín — Vista general</div>
-          <div class="psub"    id="psub">Selecciona una zona para ver ofertas</div>
+        <div id="panel-status" aria-live="polite" aria-atomic="true">
+          <h2 class="ptitulo" id="ptitulo">Medellín — Vista general</h2>
+          <p class="psub"    id="psub">Selecciona una zona para ver ofertas</p>
         </div>
-        <button class="btn-back" id="btn-back" onclick="volverSmart()">← Volver</button>
+        <button type="button" class="btn-back" id="btn-back" onclick="volverSmart()" aria-label="Volver a vista anterior">← Volver</button>
+      </div>
+      <div class="phead-zona-a11y" id="phead-zona-a11y">
+        <label for="sel-zona-a11y" class="pf-lbl">Comuna o corregimiento</label>
+        <select class="pf-sel" id="sel-zona-a11y" aria-describedby="psub">
+          <option value="">Elegir comuna o corregimiento…</option>
+        </select>
       </div>
       <div class="phead-sede-row" id="phead-sede-row">
-        <button type="button" class="pf-sel btn-sin-sede" id="btn-sin-sede" title="Ofertas sin ubicación física (no aparecen en el mapa)">
+        <button type="button" class="pf-sel btn-sin-sede" id="btn-sin-sede" aria-pressed="false" aria-label="Ver instituciones sin sede física" title="Ofertas sin ubicación física (no aparecen en el mapa)">
           🏛 Sin sede <span class="cnt-sede" id="cnt-sin-sede">0</span>
         </button>
         <span class="phead-sede-hint">Listado aparte · sin punto en el mapa · puedes indicar comuna de cobertura en la ficha</span>
@@ -671,13 +681,14 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <div class="pkpis" id="pkpis">
       <div class="pk"><div class="pk-v" id="pk1">0</div><div class="pk-l" id="pk1l">Total</div></div>
       <div class="pk"><div class="pk-v" id="pk2" style="color:#15803d">0</div><div class="pk-l">Sin costo</div></div>
-      <div class="pk"><div class="pk-v" id="pk3" style="color:var(--prod-c)">0</div><div class="pk-l">📌 Georef.</div></div>
+      <div class="pk"><div class="pk-v" id="pk3" style="color:var(--prod-c)">0</div><div class="pk-l" id="pk3l">📌 Georef.</div></div>
     </div>
     <div class="pfiltros" id="pfiltros">
-      <input class="pf-in" id="buscar" placeholder="🔍 buscar…" oninput="renderCards()">
-      <button type="button" class="pf-sel" id="btn-toggle-filtros" aria-expanded="false" title="Categorías de servicio y discapacidad">⚙ filtros</button>
+      <label for="buscar" class="sr-only">Buscar instituciones</label>
+      <input class="pf-in" id="buscar" type="search" placeholder="🔍 buscar…" aria-label="Buscar instituciones" oninput="renderCards()">
+      <button type="button" class="pf-sel" id="btn-toggle-filtros" aria-expanded="false" aria-controls="filt-panel" title="Categorías de servicio y discapacidad">⚙ filtros</button>
       <span style="display:flex;align-items:center;gap:4px">
-        <span class="pf-lbl">Costo</span>
+        <label for="f-cos" class="pf-lbl">Costo</label>
         <select class="pf-sel" id="f-cos" onchange="renderCards()">
           <option value="">Todos</option>
           <option value="gr">Sin costo</option>
@@ -698,7 +709,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
         <button type="button" class="primary" id="filt-aplicar">Listo</button>
       </div>
     </div>
-    <div class="pcards" id="pcards">
+    <div class="pcards" id="pcards" role="list" aria-label="Instituciones en la zona seleccionada">
       <div class="empty">
         <div class="empty-ico">🗺</div>
         <h3>Selecciona una zona</h3>
@@ -706,10 +717,10 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
       </div>
     </div>
     </div>
-  </div>
+  </aside>
 </div>
 
-<div class="layout" id="lay-prod" style="display:none">
+<div class="layout" id="lay-prod" style="display:none" role="tabpanel" aria-labelledby="mt-prod" aria-hidden="true">
   <div class="prod-page">
     <div class="prod-hdr">
       <div class="prod-h1">🦽 Productos y ayudas técnicas</div>
@@ -719,6 +730,8 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
     <div class="prod-grid" id="pgrid"></div>
   </div>
 </div>
+
+<div id="sr-anuncios" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
 <div class="mbg" id="modal">
   <div class="modal">
@@ -1365,7 +1378,7 @@ function construirBarraCategoriasServicio() {
         const on = [...document.querySelectorAll('#filt-srv-list input[type=checkbox]:checked')]
           .some((inp) => inp.value === r.slug);
         const et = String(r.etiqueta || '').replace(/</g, '&lt;');
-        return `<button type="button" class="srv-cat-chip${on ? ' on' : ''}" data-slug="${r.slug}">${et}</button>`;
+        return `<button type="button" class="srv-cat-chip${on ? ' on' : ''}" data-slug="${r.slug}" aria-pressed="${on ? 'true' : 'false'}" aria-label="Filtrar por ${et.replace(/"/g, '&quot;')}">${et}</button>`;
       }).join('')
     : '<span class="srv-cat-lbl" style="text-transform:none;font-weight:500">Sin catálogo (migraciones SQL).</span>';
 
@@ -1399,6 +1412,7 @@ function sincronizaChipsExploracionServicio() {
     const inp = slug ? document.querySelector(`#filt-srv-list input[type=checkbox][value="${slug}"]`) : null;
     const on = !!inp?.checked;
     btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     const presente = !!(enZona && slug && enZona.has(slug));
     btn.classList.toggle('en-zona', presente);
     if (slug) aplicarColorChipCategoria(btn, slug);
@@ -1430,6 +1444,8 @@ function aplicarKpisLista(orgs) {
 
 let mapa=null, layerGeo=null, layerPtos=null, layerLabels=null, labelZoomRaf=null;
 const orgMarkerById = new Map();
+const zonaLayerByKey = new Map();
+let lastFichaTrigger = null;
 
 const CFG = {
   disc:{ c:'#2563eb', bg:'#dbeafe', lbl:'♿ Discapacidad',   data:()=>DISC_ORGS, r:7 },
@@ -1464,6 +1480,7 @@ function initMapa() {
     style: f => estiloZona(f, false),
     onEachFeature: (f, lyr) => {
       const p   = f.properties;
+      zonaLayerByKey.set(p.nombre, { f, lyr });
       const cnt = p.cnt || 0;
       lyr.bindTooltip(
         `<strong>${p.nombre_corto || p.nombre}</strong> — ${p.tipo === 'corregimiento' ? 'Corregimiento' : 'Comuna'} ${p.numero}<br>` +
@@ -1487,6 +1504,7 @@ function initMapa() {
     document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
     syncMobMapUi();
   });
+  poblarSelectorZonasA11y();
 }
 
 function estiloZona(f, sel) {
@@ -1757,6 +1775,7 @@ function actualizarContadorSinSede() {
 function salirVistaSinSede() {
   vistaSinSede = false;
   document.querySelectorAll('#btn-sin-sede,#btn-sin-sede-hdr').forEach((btn) => btn.classList.remove('on'));
+  syncA11ySinSede();
 }
 
 function toggleVistaSinSede() {
@@ -1773,6 +1792,7 @@ function toggleVistaSinSede() {
   }
   renderCards();
   syncMobMapUi();
+  syncA11ySinSede();
 }
 
 function seleccionar(f, lyr) {
@@ -1827,6 +1847,60 @@ function seleccionar(f, lyr) {
   sincronizaChipsExploracionServicio();
   renderCards();
   syncMobMapUi();
+  actualizarSelectorZonaA11y();
+  anunciarEstadoPanel();
+}
+
+function poblarSelectorZonasA11y() {
+  const sel = document.getElementById('sel-zona-a11y');
+  if (!sel || !GEO?.features) return;
+  const sorted = [...GEO.features].sort((a, b) => {
+    const pa = a.properties;
+    const pb = b.properties;
+    if (pa.tipo !== pb.tipo) return pa.tipo === 'comuna' ? -1 : 1;
+    return (Number(pa.numero) || 0) - (Number(pb.numero) || 0);
+  });
+  sel.innerHTML = '<option value="">Elegir comuna o corregimiento…</option>' +
+    sorted.map((f) => {
+      const p = f.properties;
+      const tipo = p.tipo === 'corregimiento' ? 'Corregimiento' : 'Comuna';
+      const nom = String(p.nombre_corto || p.nombre).replace(/</g, '&lt;');
+      const val = String(p.nombre).replace(/"/g, '&quot;');
+      return `<option value="${val}">${tipo} ${p.numero} — ${nom}</option>`;
+    }).join('');
+  actualizarSelectorZonaA11y();
+}
+
+function actualizarSelectorZonaA11y() {
+  const sel = document.getElementById('sel-zona-a11y');
+  if (sel) sel.value = zona || '';
+}
+
+function anunciarEstadoPanel() {
+  const sr = document.getElementById('sr-anuncios');
+  if (!sr) return;
+  const t = document.getElementById('ptitulo')?.textContent?.trim() || '';
+  const s = document.getElementById('psub')?.textContent?.trim() || '';
+  const n = document.querySelectorAll('#pcards .ocard[data-id]').length;
+  sr.textContent = `${t}. ${s}. ${n} institución${n !== 1 ? 'es' : ''} en el listado.`;
+}
+
+function syncA11yPestanas(esProd) {
+  document.querySelectorAll('.mtab').forEach((el) => {
+    el.setAttribute('aria-selected', el.classList.contains('active') ? 'true' : 'false');
+  });
+  const layMapa = document.getElementById('lay-mapa');
+  const layProd = document.getElementById('lay-prod');
+  if (layMapa) layMapa.setAttribute('aria-hidden', esProd ? 'true' : 'false');
+  if (layProd) layProd.setAttribute('aria-hidden', esProd ? 'false' : 'true');
+  const zonaA11y = document.getElementById('phead-zona-a11y');
+  if (zonaA11y) zonaA11y.style.display = esProd ? 'none' : '';
+}
+
+function syncA11ySinSede() {
+  document.querySelectorAll('#btn-sin-sede,#btn-sin-sede-hdr').forEach((btn) => {
+    btn.setAttribute('aria-pressed', vistaSinSede ? 'true' : 'false');
+  });
 }
 
 function renderCardOrg(o) {
@@ -1850,7 +1924,7 @@ function renderCardOrg(o) {
       : tieneCoords(o)
         ? '<span style="font-size:11px;color:#d97706" title="Coordenadas no válidas">⚠</span>'
         : '<span style="font-size:10px;color:#cbd5e1" title="Sin coordenadas">○</span>';
-  return `<div class="ocard" data-id="${o.id}" role="button" tabindex="0" title="Ver en el mapa (globo). Ficha completa desde el botón del globo.">
+  return `<div class="ocard" data-id="${o.id}" role="listitem" tabindex="0" aria-label="${String(o.n || 'Institución').replace(/"/g, '&quot;')}. Ver en el mapa.">
     <div class="cn">${o.n}</div>
     ${o.d && o.d !== 'nan' ? `<div class="cd">📍 ${o.d}</div>` : ''}
     ${cob}
@@ -1900,11 +1974,13 @@ function renderCards() {
     area.className = `pcards ${tab}-tab`;
     if (!orgs.length) {
       area.innerHTML = `<div class="empty"><div class="empty-ico">🏛</div><h3>Sin registros</h3><p>No hay instituciones marcadas como sin sede en esta pestaña, o no coinciden con los filtros.</p></div>`;
+      anunciarEstadoPanel();
       return;
     }
     area.innerHTML = `<div class="aviso-sin-geo" role="status" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">
       <b>Sin sede física:</b> estas ofertas no tienen punto en el mapa. Pueden tener comuna de cobertura en texto; para ubicarlas en el territorio, edítalas en Admin y desmarca «Sin sede» si corresponde.
     </div>` + orgs.map(renderCardOrg).join('');
+    anunciarEstadoPanel();
     return;
   }
 
@@ -1914,6 +1990,7 @@ function renderCards() {
     document.getElementById('pcards').innerHTML = `<div class="empty"><div class="empty-ico">🗺</div><h3>Selecciona una zona</h3><p>Haz clic en cualquier comuna<br>o corregimiento para ver ofertas</p></div>`;
     document.getElementById('pcards').className = `pcards ${tab}-tab`;
     refrescarMapaSinZona();
+    anunciarEstadoPanel();
     return;
   }
 
@@ -1980,6 +2057,7 @@ function renderCards() {
     : '';
 
   area.innerHTML = avisoSinGeo + avisoSinSede + orgs.map(renderCardOrg).join('');
+  anunciarEstadoPanel();
 }
 
 function volverVista() {
@@ -2005,6 +2083,8 @@ function volverVista() {
   sincronizaChipsExploracionServicio();
   renderCards();
   syncMobMapUi();
+  actualizarSelectorZonaA11y();
+  anunciarEstadoPanel();
 }
 
 function volverSmart() {
@@ -2060,6 +2140,7 @@ function setTab(t) {
   const esProd = t === 'prod';
   document.getElementById('lay-mapa').style.display = esProd ? 'none' : 'flex';
   document.getElementById('lay-prod').style.display = esProd ? 'flex' : 'none';
+  syncA11yPestanas(esProd);
   const sedeRow = document.getElementById('phead-sede-row');
   if (sedeRow) sedeRow.style.display = esProd ? 'none' : 'flex';
   if (!esProd) {
@@ -2226,13 +2307,19 @@ function initProductos() {
   const cats  = [...new Set(PRODUCTOS.map(p=>p.cat).filter(Boolean))];
   const chips = document.getElementById('chips');
   chips.innerHTML = '';
-  const all = document.createElement('div');
-  all.className='chip active'; all.textContent=`Todos (${PRODUCTOS.length})`;
-  all.onclick=()=>filtrarProd(''); chips.appendChild(all);
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = 'chip active';
+  all.setAttribute('aria-pressed', 'true');
+  all.textContent = `Todos (${PRODUCTOS.length})`;
+  all.onclick = () => filtrarProd('');
+  chips.appendChild(all);
   cats.forEach(cat => {
     const cnt=PRODUCTOS.filter(p=>p.cat===cat).length;
-    const d=document.createElement('div');
+    const d=document.createElement('button');
+    d.type = 'button';
     d.className='chip';
+    d.setAttribute('aria-pressed', 'false');
     d.textContent=`${cat.split(' ').slice(0,4).join(' ')} (${cnt})`;
     d.onclick=()=>filtrarProd(cat);
     chips.appendChild(d);
@@ -2255,7 +2342,11 @@ function initProductos() {
   filtrarProd('');
 }
 function filtrarProd(cat) {
-  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active',cat===''?i===0:c.textContent.startsWith(cat.split(' ').slice(0,4).join(' '))));
+  document.querySelectorAll('.chip').forEach((c,i)=>{
+    const active = cat === '' ? i === 0 : c.textContent.startsWith(cat.split(' ').slice(0,4).join(' '));
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
   const items=cat?PRODUCTOS.filter(p=>p.cat===cat):PRODUCTOS;
   document.getElementById('pgrid').innerHTML=items.map(p=>{
     const tieneGeo = p.lat != null && p.lon != null;
@@ -2265,7 +2356,7 @@ function filtrarProd(cat) {
     const miniMap = tieneGeo
       ? `<div class="pcard-minimap" data-lat="${p.lat}" data-lon="${p.lon}" aria-hidden="true"></div>`
       : '';
-    return `<div class="pcard pcard-click"${dataId} title="Clic para ver ficha y mapa">
+    return `<div class="pcard pcard-click" role="button" tabindex="0"${dataId} aria-label="Ver ficha de ${escProdHtml(p.prov || 'producto')}">
       <div class="pcat">${escProdHtml(p.cat)}</div>
       <div class="pprov">${escProdHtml(p.prov)}</div>
       ${miniMap}
@@ -2384,15 +2475,21 @@ function actualizarAvisoFichaMapa(o, encuadro) {
 function cerrarFichaPanel() {
   const panel = document.getElementById('mapa-ficha');
   if (!panel) return;
+  const restoreFocus = lastFichaTrigger;
   if (esVistaMovil() && panel.classList.contains('ficha-fullscreen')) {
     panel.classList.remove('ficha-fullscreen');
     syncMobMapUi();
+    setTimeout(() => document.getElementById('mapa-ficha-cerrar')?.focus(), 60);
     return;
   }
   panel.classList.remove('open', 'ficha-fullscreen');
   panel.hidden = true;
   document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
   syncMobMapUi();
+  if (restoreFocus?.focus) {
+    setTimeout(() => restoreFocus.focus(), 60);
+    lastFichaTrigger = null;
+  }
 }
 
 function abrirFichaPanel(o) {
@@ -2414,6 +2511,7 @@ function abrirFichaPanel(o) {
   panel.hidden = false;
   panel.classList.add('open');
   syncMobMapUi();
+  setTimeout(() => document.getElementById('mapa-ficha-cerrar')?.focus(), 60);
 }
 
 /** Globo compacto en móvil (dentro de .mwrap), sin pantalla completa. */
@@ -2481,6 +2579,7 @@ function enfocarInstitucionEnMapa(o, opts = {}) {
 function seleccionarInstitucionLista(o, cardEl) {
   if (!o) return;
   cerrarFichaPanel();
+  lastFichaTrigger = cardEl || document.querySelector(`.ocard[data-id="${CSS.escape(o.id)}"]`);
   resaltarTarjetaLista(o.id);
   if (cardEl) {
     cardEl.classList.add('hl');
@@ -2555,10 +2654,21 @@ window.cerrarMapaProducto = cerrarMapaProducto;
 window.abrirMapaProducto  = abrirMapaProducto;
 
 // Iniciar
-document.getElementById('loading').classList.add('hide');
+const loadingEl = document.getElementById('loading');
+loadingEl?.classList.add('hide');
+loadingEl?.setAttribute('aria-busy', 'false');
 construirUIPanelFiltros();
 document.getElementById('btn-sin-sede')?.addEventListener('click', toggleVistaSinSede);
 document.getElementById('btn-sin-sede-hdr')?.addEventListener('click', toggleVistaSinSede);
+document.getElementById('sel-zona-a11y')?.addEventListener('change', (e) => {
+  const key = e.target.value;
+  if (!key) {
+    volverVista();
+    return;
+  }
+  const z = zonaLayerByKey.get(key);
+  if (z) seleccionar(z.f, z.lyr);
+});
 initPanelCardsClick();
 setTimeout(() => {
   initMapa();

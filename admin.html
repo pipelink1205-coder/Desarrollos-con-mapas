@@ -15,6 +15,7 @@
 }
 html,body{height:100%}
 body{background:#f8fafc;color:var(--txt);font-size:13px;display:flex;flex-direction:column;min-height:100vh}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* HEADER */
 .hdr{background:var(--azul);color:white;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -177,8 +178,10 @@ tr:hover td{background:var(--azul-xs)}
   <section class="page active" id="page-instituciones">
     <div class="toolbar">
       <div class="toolbar-l">
-        <input class="search" id="busc-inst"   placeholder="🔍 Buscar por nombre, dirección, comuna, barrio…">
-        <select class="select" id="filt-cat-inst">
+        <label for="busc-inst" class="sr-only">Buscar instituciones</label>
+        <input class="search" id="busc-inst" type="search" aria-label="Buscar instituciones por nombre, dirección, comuna o barrio" placeholder="🔍 Buscar por nombre, dirección, comuna, barrio…">
+        <label for="filt-cat-inst" class="sr-only">Filtrar por categoría</label>
+        <select class="select" id="filt-cat-inst" aria-label="Filtrar instituciones por categoría">
           <option value="">Todas las categorías</option>
           <option value="discapacidad">♿ Discapacidad</option>
           <option value="cuidado">💚 Cuidado</option>
@@ -196,7 +199,8 @@ tr:hover td{background:var(--azul-xs)}
   <section class="page" id="page-productos">
     <div class="toolbar">
       <div class="toolbar-l">
-        <input class="search" id="busc-prod" placeholder="🔍 Buscar producto, proveedor…">
+        <label for="busc-prod" class="sr-only">Buscar productos</label>
+        <input class="search" id="busc-prod" type="search" aria-label="Buscar productos por nombre o proveedor" placeholder="🔍 Buscar producto, proveedor…">
       </div>
       <button class="btn btn-primary" id="btn-nuevo-prod">+ Nuevo producto</button>
     </div>
@@ -209,7 +213,8 @@ tr:hover td{background:var(--azul-xs)}
   <section class="page" id="page-usuarios">
     <div class="toolbar">
       <div class="toolbar-l">
-        <input class="search" id="busc-user" placeholder="🔍 Buscar por nombre o documento…">
+        <label for="busc-user" class="sr-only">Buscar usuarios</label>
+        <input class="search" id="busc-user" type="search" aria-label="Buscar usuarios por nombre o documento" placeholder="🔍 Buscar por nombre o documento…">
       </div>
       <button class="btn btn-primary" id="btn-nuevo-user">+ Nuevo usuario</button>
     </div>
@@ -225,7 +230,7 @@ tr:hover td{background:var(--azul-xs)}
   <div class="modal">
     <div class="modal-hdr">
       <h2 id="modal-inst-titulo">Nueva institución</h2>
-      <button class="modal-x" data-close="modal-inst">✕</button>
+      <button class="modal-x" data-close="modal-inst" aria-label="Cerrar formulario de institución">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-inst">
@@ -235,7 +240,7 @@ tr:hover td{background:var(--azul-xs)}
           <div class="fieldset-titulo">Identificación</div>
 
           <div class="field">
-            <label>Categoría *</label>
+            <label for="inst-categoria">Categoría *</label>
             <select id="inst-categoria" required>
               <option value="">— elegir —</option>
               <option value="discapacidad">♿ Discapacidad</option>
@@ -248,7 +253,7 @@ tr:hover td{background:var(--azul-xs)}
             <input type="text" id="inst-tipo_organizacion" placeholder="Pública, Privada, Mixta, Comunitaria…">
           </div>
           <div class="field full">
-            <label>Nombre *</label>
+            <label for="inst-nombre">Nombre *</label>
             <input type="text" id="inst-nombre" required>
           </div>
           <div class="field full">
@@ -266,7 +271,7 @@ tr:hover td{background:var(--azul-xs)}
           </div>
           <div id="inst-ubicacion-campos">
           <div class="field full">
-            <label>Dirección</label>
+            <label for="inst-direccion">Dirección</label>
             <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
               <input type="text" id="inst-direccion" style="flex:1;min-width:200px" placeholder="Ej: Calle 44 # 68-50" autocomplete="street-address">
               <button type="button" class="btn btn-primary" id="btn-geocodificar" style="flex-shrink:0">📍 Geocodificar</button>
@@ -283,19 +288,19 @@ tr:hover td{background:var(--azul-xs)}
             <div id="geocod-mapa" style="height:200px;width:100%;border-radius:8px;border:1px solid var(--borde)"></div>
           </div>
           <div class="field">
-            <label>Comuna</label>
+            <label for="inst-comuna">Comuna</label>
             <input type="text" id="inst-comuna" placeholder="Ej: 10 - LA CANDELARIA">
           </div>
           <div class="field">
-            <label>Barrio</label>
+            <label for="inst-barrio">Barrio</label>
             <input type="text" id="inst-barrio">
           </div>
           <div class="field">
-            <label>Latitud <span class="badge badge-disc" id="geocod-lat-badge" style="display:none;font-weight:600">auto</span></label>
+            <label for="inst-latitud">Latitud <span class="badge badge-disc" id="geocod-lat-badge" style="display:none;font-weight:600">auto</span></label>
             <input type="number" step="0.0000001" id="inst-latitud" placeholder="6.2518">
           </div>
           <div class="field">
-            <label>Longitud <span class="badge badge-disc" id="geocod-lng-badge" style="display:none;font-weight:600">auto</span></label>
+            <label for="inst-longitud">Longitud <span class="badge badge-disc" id="geocod-lng-badge" style="display:none;font-weight:600">auto</span></label>
             <input type="number" step="0.0000001" id="inst-longitud" placeholder="-75.5636">
           </div>
           </div>
@@ -399,7 +404,7 @@ tr:hover td{background:var(--azul-xs)}
   <div class="modal" style="max-width:640px">
     <div class="modal-hdr">
       <h2 id="modal-prod-titulo">Nuevo producto</h2>
-      <button class="modal-x" data-close="modal-prod">✕</button>
+      <button class="modal-x" data-close="modal-prod" aria-label="Cerrar formulario de producto">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-prod">
@@ -408,14 +413,14 @@ tr:hover td{background:var(--azul-xs)}
 
           <div class="fieldset-titulo">Identificación</div>
           <div class="field full">
-            <label>Categoría *</label>
+            <label for="prod-categoria">Categoría *</label>
             <input type="text" id="prod-categoria" list="prod-categorias-list" required
               placeholder="Elija una existente o escriba una nueva">
             <datalist id="prod-categorias-list"></datalist>
             <div class="hint">Mismas categorías que ya tienen los productos cargados (columna del directorio). Puede elegir de la lista o escribir una nueva.</div>
           </div>
           <div class="field full">
-            <label>Proveedor / punto de atención *</label>
+            <label for="prod-proveedor">Proveedor / punto de atención *</label>
             <input type="text" id="prod-proveedor" required placeholder="Nombre del proveedor o tienda">
           </div>
           <div class="field full">
@@ -444,7 +449,7 @@ tr:hover td{background:var(--azul-xs)}
 
           <div class="fieldset-titulo">Ubicación</div>
           <div class="field full">
-            <label>Dirección</label>
+            <label for="inst-direccion">Dirección</label>
             <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
               <input type="text" id="prod-direccion" style="flex:1;min-width:200px" placeholder="Ej: Calle 44 # 68-50" autocomplete="street-address">
               <button type="button" class="btn btn-primary" id="btn-geocodificar-prod" style="flex-shrink:0">📍 Geocodificar</button>
@@ -461,11 +466,11 @@ tr:hover td{background:var(--azul-xs)}
             <div id="prod-geocod-mapa" style="height:200px;width:100%;border-radius:8px;border:1px solid var(--borde)"></div>
           </div>
           <div class="field">
-            <label>Comuna</label>
+            <label for="inst-comuna">Comuna</label>
             <input type="text" id="prod-comuna" placeholder="Ej: 10 - LA CANDELARIA">
           </div>
           <div class="field">
-            <label>Barrio</label>
+            <label for="inst-barrio">Barrio</label>
             <input type="text" id="prod-barrio">
           </div>
           <div class="field">
@@ -492,18 +497,18 @@ tr:hover td{background:var(--azul-xs)}
   <div class="modal" style="max-width:480px">
     <div class="modal-hdr">
       <h2 id="modal-user-titulo">Nuevo usuario</h2>
-      <button class="modal-x" data-close="modal-user">✕</button>
+      <button class="modal-x" data-close="modal-user" aria-label="Cerrar formulario de usuario">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-user">
         <input type="hidden" id="user-id">
         <div class="form-grid">
           <div class="field full">
-            <label>Nombre completo *</label>
+            <label for="user-nombre-input">Nombre completo *</label>
             <input type="text" id="user-nombre-input" required>
           </div>
           <div class="field full" id="field-email">
-            <label>Correo electrónico *</label>
+            <label for="user-email-input">Correo electrónico *</label>
             <input type="email" id="user-email-input" required placeholder="cualquier correo válido">
           </div>
           <div class="field full" id="field-cedula">
@@ -539,7 +544,7 @@ tr:hover td{background:var(--azul-xs)}
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script type="module" src="/js/admin.js"></script>
 </body>
