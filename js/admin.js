@@ -85,6 +85,12 @@ function parseCoordInput(id) {
   return Number.isFinite(v) ? v : null;
 }
 
+function etiquetaFuenteGeocod(fuente) {
+  if (fuente === 'alcaldia') return 'Alcaldía de Medellín (Planeación / catastro)';
+  if (fuente === 'arcgis') return 'ArcGIS / Esri (respaldo)';
+  return 'OpenStreetMap (respaldo)';
+}
+
 /** Guarda URL con esquema https para enlaces en el mapa. */
 function normalizarPaginaWeb(s) {
   const t = String(s || '').trim();
@@ -303,7 +309,9 @@ async function _ejecutarGeocod() {
       avisoComuna =
         ` · El punto quedó fuera del área de Medellín: comuna asignada «${CODIGO_COMUNA_FUERA_MEDELLIN}» (código para reportes).`;
     } else if (r.comuna) {
-      if (numAntes != null && numGeo != null && numAntes !== numGeo) {
+      if (r.fuente === 'alcaldia') {
+        $('inst-comuna').value = r.comuna;
+      } else if (numAntes != null && numGeo != null && numAntes !== numGeo) {
         avisoComuna =
           ` · Atención: el punto quedó en comuna ${numGeo} (${r.comuna}), no en la ${numAntes} que tenías. ` +
           'No cambiamos el campo Comuna: revisa la dirección o arrastra el marcador. Si el punto es correcto, actualiza Comuna a mano.';
@@ -314,15 +322,16 @@ async function _ejecutarGeocod() {
     if (r.barrio) $('inst-barrio').value = r.barrio;
     _mostrarBadgesAuto(true);
 
-    const fuenteLabel = r.fuente === 'arcgis' ? 'ArcGIS / Esri' : 'OpenStreetMap';
+    const fuenteLabel = etiquetaFuenteGeocod(r.fuente);
     const iconoConf   = r.confianza === 'alta' ? '✅' : '⚠️';
     const textoConf   = r.confianza === 'alta' ? 'alta — ubicación confiable'
       : r.confianza === 'media' ? 'media — verifica en el mapa'
         : 'baja — ajusta manualmente el marcador';
 
     const partesZona = [];
-    if (r.comuna) partesZona.push(`Comuna detectada: ${r.comuna}`);
+    if (r.comuna) partesZona.push(`Comuna: ${r.comuna}`);
     if (r.barrio) partesZona.push(`Barrio: ${r.barrio}`);
+    if (r.dirEncasillada) partesZona.push(`Dir. oficial: ${r.dirEncasillada}`);
     const extraZona = partesZona.length ? ` · ${partesZona.join(' · ')}` : ' · Comuna/barrio: no detectados (revísalos a mano)';
 
     _estadoGeocod(
@@ -462,10 +471,15 @@ async function _ejecutarGeocodProd(opts = {}) {
     _mostrarBadgesAutoProd(true);
 
     if (!opts.silencioso) {
-      const extra = [r.comuna && `Comuna: ${r.comuna}`, r.barrio && `Barrio: ${r.barrio}`].filter(Boolean).join(' · ');
+      const extra = [
+        etiquetaFuenteGeocod(r.fuente),
+        r.comuna && `Comuna: ${r.comuna}`,
+        r.barrio && `Barrio: ${r.barrio}`,
+        r.dirEncasillada && `Dir. oficial: ${r.dirEncasillada}`,
+      ].filter(Boolean).join(' · ');
       _estadoGeocodProd(
         r.confianza === 'alta' ? 'ok' : 'parcial',
-        `✅ Punto listo para el mapa${extra ? ' · ' + extra : ''}`,
+        `✅ Punto listo para el mapa · ${extra}`,
       );
     }
 

@@ -132,6 +132,7 @@ const server = http.createServer(async (req, nodeRes) => {
       method: req.method,
       headers: req.headers,
       body: await readBody(req),
+      query: Object.fromEntries(url.searchParams),
     };
     const fakeRes = resJsonChain(nodeRes);
     try {

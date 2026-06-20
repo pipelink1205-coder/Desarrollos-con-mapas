@@ -1,10 +1,10 @@
 // =====================================================================
 //  GEOCODIFICADOR — módulo independiente (Medellín, Colombia)
 // =====================================================================
-//  1) Esri World GeocodeServer (sin API key para candidatos públicos).
-//  2) Respaldo: Nominatim (OSM) búsqueda directa.
-//  Tras lat/lon: inversa Nominatim + comuna oficial desde /data/comunas.geojson
-//  (punto en polígono y/o texto → org_key tipo "01 - POPULAR").
+//  1) API oficial Alcaldía de Medellín (Planeación / catastro) vía /api/geocodificar-medellin
+//  2) Respaldo: Esri World GeocodeServer
+//  3) Respaldo: Nominatim (OSM)
+//  Comuna → org_key desde comunas.geojson; barrio oficial desde catastro (Alcaldía).
 // =====================================================================
 
 /** @param {unknown} s */
@@ -328,11 +328,94 @@ async function enriquecerZona(lat, lng, extras = {}) {
 }
 
 /**
+ * Barrio oficial (catastro / planeación) desde ítem de la API de Medellín.
+ * @param {Record<string, unknown>} item
+ */
+function barrioDesdeItemAlcaldia(item) {
+  const b = limpiar(item.nombre_barrio_cat) || limpiar(item.nombre_barrio_pla);
+  return b ? b.toLocaleUpperCase('es-CO') : null;
+}
+
+/**
+ * org_key del GeoJSON (ej. "16 - BELEN") desde código o nombre de comuna oficial.
+ * @param {Record<string, unknown>} item
+ * @param {number} lat
+ * @param {number} lng
+ */
+async function comunaDesdeItemAlcaldia(item, lat, lng) {
+  const ref = await cargarComunasGeoJSON();
+  const codRaw = limpiar(item.codigo_comuna_pla) || limpiar(item.codigo_comuna_cat);
+  const num = codRaw != null ? parseInt(String(codRaw).replace(/^0+/, '') || codRaw, 10) : NaN;
+  if (ref?.rows?.length && Number.isFinite(num)) {
+    const hit = ref.rows.find((r) => r.numero === num);
+    if (hit?.org_key) return hit.org_key;
+  }
+
+  const nombre =
+    limpiar(item.nombre_comuna_cat) ||
+    limpiar(item.nombre_comuna_pla);
+  if (nombre && ref?.rows?.length) {
+    const cat = normalizarComunaAlCatalogo(nombre, ref.rows);
+    if (cat) return cat;
+  }
+
+  return comunaOficialFinal(lat, lng, nombre);
+}
+
+/**
+ * Geocodifica con la API oficial de la Alcaldía (proxy same-origin).
+ * @param {string} direccion
+ */
+async function geocodificarAlcaldiaMedellin(direccion) {
+  const q = String(direccion || '').trim();
+  if (q.length < 3) return null;
+
+  try {
+    const u = new URL('/api/geocodificar-medellin', window.location.origin);
+    u.searchParams.set('direccion', q);
+    const res = await fetch(u.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data?.status || !Array.isArray(data.item) || !data.item.length) return null;
+
+    const item = data.item[0];
+    const lat = Number(item.latitud);
+    const lng = Number(item.longitud);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    const comuna = await comunaDesdeItemAlcaldia(item, lat, lng);
+    const barrio = barrioDesdeItemAlcaldia(item);
+
+    return {
+      lat,
+      lng,
+      fuente: 'alcaldia',
+      confianza: 'alta',
+      comuna,
+      barrio,
+      dirEncasillada: limpiar(item.dir_encasillada) || limpiar(item.dir),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {string} direccion Texto libre (calle, número, etc.)
- * @returns {Promise<{ lat: number, lng: number, fuente: 'arcgis'|'osm', confianza: 'alta'|'media'|'baja', comuna: string|null, barrio: string|null }|null>}
+ * @returns {Promise<{ lat: number, lng: number, fuente: 'alcaldia'|'arcgis'|'osm', confianza: 'alta'|'media'|'baja', comuna: string|null, barrio: string|null, dirEncasillada?: string|null }|null>}
  */
 export async function geocodificarDireccion(direccion) {
-  const singleLine = conContextoMedellin(direccion);
+  const raw = String(direccion || '').trim();
+  if (!raw || raw.length < 3) return null;
+
+  const alc = await geocodificarAlcaldiaMedellin(raw);
+  if (alc) return alc;
+
+  const singleLine = conContextoMedellin(raw);
   if (!singleLine || singleLine.length < 3) return null;
 
   try {
