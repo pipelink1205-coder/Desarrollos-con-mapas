@@ -527,6 +527,200 @@ document.querySelectorAll('.mbg').forEach((bg) => {
 });
 
 // ---------------------------------------------------------------------
+//  Ficha completa (solo lectura — admin y consulta)
+// ---------------------------------------------------------------------
+const CAT_FICHA = {
+  discapacidad: ['badge-disc', '♿ Discapacidad'],
+  cuidado: ['badge-cuid', '💚 Cuidado'],
+  mesa: ['badge-mesa', '🤝 Mesa de cuidado'],
+};
+
+let fichaEditHandler = null;
+
+function fichaTexto(v) {
+  if (v === null || v === undefined) return null;
+  const t = String(v).trim();
+  return t || null;
+}
+
+function fichaEnlace(v) {
+  const t = fichaTexto(v);
+  if (!t) return '—';
+  const href = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  return `<a href="${escapar(href)}" target="_blank" rel="noopener noreferrer">${escapar(t)}</a>`;
+}
+
+function fichaFila(label, value, opts = {}) {
+  const t = opts.html ? value : fichaTexto(value);
+  if (!t && !opts.always) return '';
+  const val = opts.html ? value : escapar(t || '—');
+  return `<div class="ficha-row"><div class="ficha-lbl">${escapar(label)}</div><div class="ficha-val">${val}</div></div>`;
+}
+
+function fichaBloque(titulo, filasHtml) {
+  const html = filasHtml.filter(Boolean).join('');
+  if (!html) return '';
+  return `<div class="ficha-seccion"><div class="ficha-seccion-t">${escapar(titulo)}</div>${html}</div>`;
+}
+
+function fichaLista(items) {
+  const list = (items || []).map(fichaTexto).filter(Boolean);
+  if (!list.length) return null;
+  return `<ul class="ficha-list">${list.map((x) => `<li>${escapar(x)}</li>`).join('')}</ul>`;
+}
+
+function textoGeoInst(i) {
+  if (i.sin_sede) return 'Sin sede física (no aparece en el mapa)';
+  if (tieneCoordenadasInst(i)) return `Visible en mapa · ${i.latitud}, ${i.longitud}`;
+  if (i.latitud != null || i.longitud != null) return 'Coordenadas registradas pero no válidas para el mapa';
+  return 'Sin geolocalizar';
+}
+
+function abrirFicha(titulo, categoria, bodyHtml, onEdit) {
+  const badge = $('ficha-badge');
+  const [cls, lbl] = CAT_FICHA[categoria] || ['', ''];
+  if (lbl) {
+    badge.className = `badge ${cls}`;
+    badge.textContent = lbl;
+    badge.hidden = false;
+  } else if (categoria) {
+    badge.className = 'badge badge-prod';
+    badge.textContent = categoria;
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+  $('ficha-titulo').textContent = titulo;
+  $('ficha-body').innerHTML = bodyHtml;
+  const btnEdit = $('btn-ficha-editar');
+  if (esAdmin && onEdit) {
+    btnEdit.style.display = '';
+    fichaEditHandler = onEdit;
+  } else {
+    btnEdit.style.display = 'none';
+    fichaEditHandler = null;
+  }
+  abrirModal('modal-ficha');
+  $('modal-ficha')?.querySelector('.modal-x')?.focus();
+}
+
+async function verInstitucion(id) {
+  const i = state.instituciones.find((x) => x.id === id);
+  if (!i) return;
+
+  let srvLabels = [];
+  let discLabels = [];
+  const [{ data: rowsSrv }, { data: rowsDisc }] = await Promise.all([
+    supabase.from('institucion_servicio').select('servicio_id').eq('institucion_id', id),
+    supabase.from('institucion_discapacidad').select('tipo_discapacidad_id').eq('institucion_id', id),
+  ]);
+  const sset = new Set((rowsSrv || []).map((r) => r.servicio_id));
+  const dset = new Set((rowsDisc || []).map((r) => r.tipo_discapacidad_id));
+  srvLabels = state.servicioCatalogo.filter((s) => sset.has(s.id)).map((s) => s.etiqueta);
+  discLabels = state.discCatalogo.filter((d) => dset.has(d.id)).map((d) => d.etiqueta);
+  if (!discLabels.length && (i.tipos_discapacidad || []).length) {
+    discLabels = [...i.tipos_discapacidad];
+  }
+
+  const dir = [i.direccion, i.direccion_complemento].filter(Boolean).join(' · ');
+  const audiencia = [];
+  if (i.atiende_persona_discapacidad) audiencia.push('Persona con discapacidad');
+  if (i.atiende_familia) audiencia.push('Familia');
+  if (i.atiende_publico_general) audiencia.push('Público en general');
+
+  const body = [
+    fichaBloque('Identificación', [
+      fichaFila('Tipo de organización', i.tipo_organizacion),
+      fichaFila('Programa / proyecto', i.programa),
+    ]),
+    fichaBloque('Ubicación', [
+      fichaFila('Sede física', i.sin_sede ? 'Sin sede física' : 'Con sede física', { always: true }),
+      fichaFila('Dirección', dir),
+      fichaFila('Comuna', i.comuna),
+      fichaFila('Barrio', i.barrio),
+      fichaFila('Geolocalización', textoGeoInst(i), { always: true }),
+    ]),
+    fichaBloque('Contacto', [
+      fichaFila('Teléfonos', textoTelefonos(i.telefono)),
+      fichaFila('Correo', i.email),
+      fichaFila('Página web', i.pagina_web ? fichaEnlace(i.pagina_web) : null, { html: !!fichaTexto(i.pagina_web) }),
+      fichaFila('Persona de contacto', i.contacto_persona),
+    ]),
+    fichaBloque('Oferta', [
+      srvLabels.length
+        ? fichaFila('Servicios', fichaLista(srvLabels), { html: true, always: true })
+        : fichaFila('Servicios', i.servicios),
+      fichaFila('Costo', i.costo),
+      fichaFila('Cupos', i.cupos),
+      fichaFila('Cobertura', i.cobertura),
+      fichaFila('Población objetivo', i.poblacion_objetivo),
+      fichaFila('Requisitos', i.requisitos),
+    ]),
+    fichaBloque('Política pública', [
+      fichaFila('Sector', i.sector),
+      fichaFila('Relacionamiento PP', i.nivel_relacionamiento_pp),
+      fichaFila('Eje PP', i.eje_pp_1),
+      fichaFila('Dimensión PP', i.dimension_pp),
+    ]),
+    i.categoria === 'discapacidad'
+      ? fichaBloque('Discapacidad', [
+          discLabels.length
+            ? fichaFila('Tipos atendidos', fichaLista(discLabels), { html: true, always: true })
+            : '',
+          audiencia.length
+            ? fichaFila('Población atendida', audiencia.join(' · '), { always: true })
+            : '',
+        ])
+      : '',
+  ].join('');
+
+  abrirFicha(i.nombre || 'Institución', i.categoria, body, () => {
+    cerrarModal('modal-ficha');
+    editarInstitucion(id);
+  });
+}
+
+function verProducto(id) {
+  const p = state.productos.find((x) => x.id === id);
+  if (!p) return;
+
+  const dir = [p.direccion, p.direccion_complemento].filter(Boolean).join(' · ');
+  const geo = p.latitud != null && p.longitud != null
+    ? `Coordenadas: ${p.latitud}, ${p.longitud}`
+    : 'Sin geolocalizar';
+
+  const body = [
+    fichaBloque('Identificación', [
+      fichaFila('Categoría', etiquetaProducto(p)),
+      fichaFila('Proveedor', p.proveedor),
+      fichaFila('Oferta / descripción', p.oferta),
+    ]),
+    fichaBloque('Contacto', [
+      fichaFila('Persona de contacto', p.contacto_persona),
+      fichaFila('Teléfonos', textoTelefonos(p.telefono)),
+      fichaFila('Correo', p.email),
+      fichaFila('Página web', p.pagina_web ? fichaEnlace(p.pagina_web) : null, { html: !!fichaTexto(p.pagina_web) }),
+      fichaFila('Contacto (legado)', p.contacto),
+    ]),
+    fichaBloque('Ubicación', [
+      fichaFila('Dirección', dir),
+      fichaFila('Comuna', p.comuna),
+      fichaFila('Barrio', p.barrio),
+      fichaFila('Geolocalización', geo, { always: true }),
+    ]),
+  ].join('');
+
+  abrirFicha(p.proveedor || p.oferta || 'Producto', etiquetaProducto(p), body, () => {
+    cerrarModal('modal-ficha');
+    editarProducto(id);
+  });
+}
+
+$('btn-ficha-editar')?.addEventListener('click', () => {
+  if (fichaEditHandler) fichaEditHandler();
+});
+
+// ---------------------------------------------------------------------
 //  Navegación entre pestañas
 // ---------------------------------------------------------------------
 document.querySelectorAll('.tab').forEach(tab => {
@@ -660,7 +854,7 @@ function renderInstituciones() {
   }
 
   const badgeMap = { discapacidad:['badge-disc','♿ Disc'], cuidado:['badge-cuid','💚 Cuid'], mesa:['badge-mesa','🤝 Mesa'] };
-  const thAcc = esAdmin ? '<th style="width:90px">Acciones</th>' : '';
+  const thAcc = `<th style="width:${esAdmin ? '118px' : '52px'}">Acciones</th>`;
 
   $('tabla-inst-wrap').innerHTML = `
     <table>
@@ -680,14 +874,13 @@ function renderInstituciones() {
               : (i.latitud != null || i.longitud != null)
                 ? '<span title="Tiene lat/lon pero no válidas: edita, geocodifica y guarda">⚠</span>'
                 : '—';
-          const acc = esAdmin
-            ? `<td>
+          const acc = `<td>
               <div class="tabla-acciones">
-                <button class="icon-btn" data-edit-inst="${i.id}" title="Editar" aria-label="Editar institución ${escapar(i.nombre)}">✏️</button>
-                <button class="icon-btn danger" data-del-inst="${i.id}" title="Borrar" aria-label="Borrar institución ${escapar(i.nombre)}">🗑</button>
+                <button class="icon-btn ver" data-view-inst="${i.id}" title="Ver ficha completa" aria-label="Ver ficha completa de ${escapar(i.nombre)}">👁</button>
+                ${esAdmin ? `<button class="icon-btn" data-edit-inst="${i.id}" title="Editar" aria-label="Editar institución ${escapar(i.nombre)}">✏️</button>
+                <button class="icon-btn danger" data-del-inst="${i.id}" title="Borrar" aria-label="Borrar institución ${escapar(i.nombre)}">🗑</button>` : ''}
               </div>
-            </td>`
-            : '';
+            </td>`;
           return `<tr>
             <td><span class="badge ${cls}">${lbl}</span></td>
             <td><strong>${escapar(i.nombre)}</strong>${i.programa ? `<div style="color:var(--txt2);font-size:11px">${escapar(i.programa)}</div>` : ''}</td>
@@ -703,6 +896,9 @@ function renderInstituciones() {
     </table>
   `;
 
+  document.querySelectorAll('[data-view-inst]').forEach((b) =>
+    b.addEventListener('click', () => verInstitucion(b.dataset.viewInst))
+  );
   if (esAdmin) {
     document.querySelectorAll('[data-edit-inst]').forEach(b =>
       b.addEventListener('click', () => editarInstitucion(b.dataset.editInst))
@@ -1062,7 +1258,7 @@ function renderProductos() {
     return;
   }
 
-  const thAccP = esAdmin ? '<th style="width:90px">Acciones</th>' : '';
+  const thAccP = `<th style="width:${esAdmin ? '118px' : '52px'}">Acciones</th>`;
 
   $('tabla-prod-wrap').innerHTML = `
     <table>
@@ -1074,14 +1270,13 @@ function renderProductos() {
       </thead>
       <tbody>
         ${lista.map(p => {
-          const acc = esAdmin
-            ? `<td>
+          const acc = `<td>
             <div class="tabla-acciones">
-              <button class="icon-btn" data-edit-prod="${p.id}" title="Editar" aria-label="Editar producto ${escapar(p.proveedor || p.oferta || '')}">✏️</button>
-              <button class="icon-btn danger" data-del-prod="${p.id}" title="Borrar" aria-label="Borrar producto ${escapar(p.proveedor || p.oferta || '')}">🗑</button>
+              <button class="icon-btn ver" data-view-prod="${p.id}" title="Ver ficha completa" aria-label="Ver ficha completa de ${escapar(p.proveedor || p.oferta || '')}">👁</button>
+              ${esAdmin ? `<button class="icon-btn" data-edit-prod="${p.id}" title="Editar" aria-label="Editar producto ${escapar(p.proveedor || p.oferta || '')}">✏️</button>
+              <button class="icon-btn danger" data-del-prod="${p.id}" title="Borrar" aria-label="Borrar producto ${escapar(p.proveedor || p.oferta || '')}">🗑</button>` : ''}
             </div>
-          </td>`
-            : '';
+          </td>`;
           const geo = p.latitud != null && p.longitud != null ? '📌' : '—';
           return `<tr>
           <td><span class="badge badge-prod">${escapar(etiquetaProducto(p) || '—')}</span></td>
@@ -1098,6 +1293,9 @@ function renderProductos() {
     </table>
   `;
 
+  document.querySelectorAll('[data-view-prod]').forEach((b) =>
+    b.addEventListener('click', () => verProducto(b.dataset.viewProd))
+  );
   if (esAdmin) {
     document.querySelectorAll('[data-edit-prod]').forEach(b =>
       b.addEventListener('click', () => editarProducto(b.dataset.editProd))
@@ -1454,3 +1652,4 @@ function escapar(s) {
 
 // Cargar la primera pestaña
 cargarInstituciones();
+window.initSileoA11y?.({ variant: 'admin' });

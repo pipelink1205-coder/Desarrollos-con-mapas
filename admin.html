@@ -75,6 +75,23 @@ tr:hover td{background:var(--azul-xs)}
 .icon-btn{padding:5px 9px;border:1px solid var(--borde);border-radius:5px;background:white;cursor:pointer;font-size:11px;color:var(--txt2)}
 .icon-btn:hover{background:var(--azul-xs);color:var(--azul-med);border-color:var(--azul-med)}
 .icon-btn.danger:hover{background:var(--rojo-bg);color:var(--rojo);border-color:var(--rojo)}
+.icon-btn.ver:hover{background:var(--verde-bg);color:var(--verde);border-color:var(--verde)}
+
+/* Ficha completa (solo lectura) */
+.ficha-modal .modal-hdr{align-items:flex-start;gap:12px}
+.ficha-hdr-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ficha-hdr-meta h2{line-height:1.25}
+.ficha-body-inner{font-size:12px}
+.ficha-seccion{margin-bottom:16px}
+.ficha-seccion:last-child{margin-bottom:0}
+.ficha-seccion-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.35px;color:var(--azul);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--borde)}
+.ficha-row{display:flex;gap:10px;margin-bottom:7px;align-items:flex-start}
+.ficha-lbl{color:var(--txt2);font-weight:600;min-width:118px;flex-shrink:0;font-size:11px;line-height:1.4}
+.ficha-val{flex:1;line-height:1.45;word-break:break-word}
+.ficha-val a{color:var(--azul-med);text-decoration:none}
+.ficha-val a:hover{text-decoration:underline}
+.ficha-list{margin:0;padding-left:16px;line-height:1.45}
+.ficha-list li{margin-bottom:3px}
 
 /* MODAL */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
@@ -138,6 +155,12 @@ tr:hover td{background:var(--azul-xs)}
 @media(max-width:720px){
   .form-grid{grid-template-columns:1fr}
   .hdr-info{display:none}
+  .tabla-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th:last-child,td:last-child{position:sticky;right:0;background:white;box-shadow:-4px 0 8px rgba(15,23,42,.06);z-index:1}
+  tr:hover td:last-child{background:var(--azul-xs)}
+  th:last-child{background:var(--gris)}
+  .icon-btn.ver{padding:6px 10px;font-size:13px}
+  .ficha-lbl{min-width:96px}
 }
 
 /* Mini-mapa geocodificación (modal institución) */
@@ -546,6 +569,25 @@ tr:hover td{background:var(--azul-xs)}
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+<!-- ===== MODAL: ficha completa (solo lectura) ===== -->
+<div class="mbg" id="modal-ficha" role="dialog" aria-modal="true" aria-labelledby="ficha-titulo">
+  <div class="modal ficha-modal" style="max-width:640px">
+    <div class="modal-hdr">
+      <div class="ficha-hdr-meta">
+        <span id="ficha-badge" class="badge" hidden></span>
+        <h2 id="ficha-titulo">Ficha</h2>
+      </div>
+      <button class="modal-x" data-close="modal-ficha" aria-label="Cerrar ficha">✕</button>
+    </div>
+    <div class="modal-body ficha-body-inner" id="ficha-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-ficha">Cerrar</button>
+      <button class="btn btn-primary" id="btn-ficha-editar" type="button" style="display:none">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/sileo-a11y.js"></script>
 <script type="module" src="/js/admin.js"></script>
 </body>
 </html>

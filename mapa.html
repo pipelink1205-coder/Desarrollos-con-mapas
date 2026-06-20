@@ -761,6 +761,7 @@ button.chip{appearance:none;-webkit-appearance:none}
   </div>
 </div>
 
+<script src="/js/sileo-a11y.js"></script>
 <script type="module">
 // =====================================================================
 //  AUTENTICACIÓN: requiere sesión activa
@@ -2678,6 +2679,7 @@ setTimeout(() => {
   syncMobMapUi();
 }, 50);
 initProductos();
+initSileoA11y({ variant: 'mapa' });
 
 function recalcMapaSize() {
   if (!mapa) return;
