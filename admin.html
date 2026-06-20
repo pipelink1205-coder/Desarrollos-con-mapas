@@ -31,7 +31,7 @@ body{background:#f8fafc;color:var(--txt);font-size:13px;display:flex;flex-direct
 .hdr-btn:hover{background:rgba(255,255,255,.2)}
 
 /* TABS */
-.tabs{display:flex;background:var(--blanco);border-bottom:1px solid var(--borde);padding:0 20px;flex-shrink:0}
+.nav.tabs{display:flex;background:var(--blanco);border-bottom:1px solid var(--borde);padding:0 20px;flex-shrink:0}
 .tab{padding:14px 18px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent}
 .tab.active{color:var(--azul-med);border-bottom-color:var(--azul-med)}
 .tab:hover:not(.active){color:var(--azul);background:var(--gris)}
@@ -203,6 +203,7 @@ th.th-sort{padding:0;vertical-align:middle}
 
 <nav class="tabs">
   <button class="tab active" data-page="instituciones">🏛 Instituciones</button>
+  <button class="tab" data-page="inst-desactivadas" id="tab-inst-desactivadas">🚫 Desactivadas</button>
   <button class="tab"        data-page="productos">🦽 Productos</button>
   <button class="tab"        data-page="usuarios" id="tab-usuarios">👥 Usuarios</button>
 </nav>
@@ -227,6 +228,29 @@ th.th-sort{padding:0;vertical-align:middle}
     </div>
     <div class="tabla-wrap" id="tabla-inst-wrap">
       <div class="loading"><span class="spinner"></span>Cargando instituciones…</div>
+    </div>
+  </section>
+
+  <!-- ============== INSTITUCIONES DESACTIVADAS (solo admin) ============== -->
+  <section class="page" id="page-inst-desactivadas">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <label for="busc-inst-des" class="sr-only">Buscar instituciones desactivadas</label>
+        <input class="search" id="busc-inst-des" type="search" aria-label="Buscar instituciones desactivadas" placeholder="🔍 Buscar desactivadas por nombre, comuna…">
+        <label for="filt-cat-inst-des" class="sr-only">Filtrar desactivadas por categoría</label>
+        <select class="select" id="filt-cat-inst-des" aria-label="Filtrar desactivadas por categoría">
+          <option value="">Todas las categorías</option>
+          <option value="discapacidad">♿ Discapacidad</option>
+          <option value="cuidado">💚 Cuidado</option>
+          <option value="mesa">🤝 Mesa</option>
+        </select>
+      </div>
+    </div>
+    <p class="hint" style="margin:-6px 0 12px;font-size:11px;color:var(--txt2);line-height:1.45">
+      Registros desactivados no aparecen en el mapa ni en el directorio de consulta. Se conservan para informes y pueden reactivarse.
+    </p>
+    <div class="tabla-wrap" id="tabla-inst-des-wrap">
+      <div class="loading"><span class="spinner"></span>Cargando desactivadas…</div>
     </div>
   </section>
 

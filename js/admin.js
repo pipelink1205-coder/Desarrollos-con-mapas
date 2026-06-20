@@ -59,6 +59,10 @@ if (!esAdmin) {
   if (tabU) tabU.style.display = 'none';
   const pageU = document.getElementById('page-usuarios');
   if (pageU) pageU.hidden = true;
+  const tabDes = document.getElementById('tab-inst-desactivadas');
+  if (tabDes) tabDes.style.display = 'none';
+  const pageDes = document.getElementById('page-inst-desactivadas');
+  if (pageDes) pageDes.hidden = true;
   ['btn-nueva-inst', 'btn-nuevo-prod', 'btn-nuevo-user'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -643,6 +647,12 @@ async function verInstitucion(id) {
   if (i.atiende_publico_general) audiencia.push('Público en general');
 
   const body = [
+    !institucionActiva(i)
+      ? fichaBloque('Estado del registro', [
+          fichaFila('Visible en mapa', 'No — desactivada', { always: true }),
+          fichaFila('Desactivada el', fmtFechaRegistro(i.desactivado_en)),
+        ])
+      : '',
     fichaBloque('Identificación', [
       fichaFila('Tipo de organización', i.tipo_organizacion),
       fichaFila('Programa / proyecto', i.programa),
@@ -745,6 +755,10 @@ document.querySelectorAll('.tab').forEach(tab => {
     $(`page-${tab.dataset.page}`).classList.add('active');
 
     if (tab.dataset.page === 'instituciones' && !state.instCargadas) cargarInstituciones();
+    if (tab.dataset.page === 'inst-desactivadas') {
+      if (!state.instCargadas) cargarInstituciones();
+      else renderInstDesactivadas();
+    }
     if (tab.dataset.page === 'productos'     && !state.prodCargados) cargarProductos();
     if (esAdmin && tab.dataset.page === 'usuarios' && !state.usersCargados) cargarUsuarios();
   });
@@ -765,8 +779,22 @@ const state = {
   /** @type {{ id:string, slug:string, etiqueta:string }[]} */
   discCatalogo:   [],
   instSort: { key: 'nombre', dir: 'asc' },
+  instDesSort: { key: 'desactivado_en', dir: 'desc' },
   prodSort: { key: 'proveedor', dir: 'asc' },
 };
+
+function institucionActiva(i) {
+  return i?.activo !== false;
+}
+
+function fmtFechaRegistro(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return String(iso);
+  }
+}
 
 function alternarOrdenTabla(sortState, key) {
   if (sortState.key === key) {
@@ -801,6 +829,10 @@ function ordenarFilas(lista, sortState, getters) {
     if (sortState.key === 'comuna') {
       c = claveOrdenComuna(get(a)) - claveOrdenComuna(get(b));
       if (c === 0) c = cmpTextoEs(get(a), get(b));
+    } else if (sortState.key === 'desactivado_en') {
+      const ta = Date.parse(get(a) || '') || 0;
+      const tb = Date.parse(get(b) || '') || 0;
+      c = ta - tb;
     } else {
       c = cmpTextoEs(get(a), get(b));
     }
@@ -918,6 +950,9 @@ async function cargarInstituciones() {
   state.instituciones = instRes.data || [];
   state.instCargadas  = true;
   renderInstituciones();
+  if (document.getElementById('page-inst-desactivadas')?.classList.contains('active')) {
+    renderInstDesactivadas();
+  }
 }
 
 function renderInstituciones() {
@@ -926,6 +961,7 @@ function renderInstituciones() {
 
   const lista = ordenarFilas(
     state.instituciones.filter(i => {
+    if (!institucionActiva(i)) return false;
     if (cat && i.categoria !== cat) return false;
     if (!q) return true;
     return [i.nombre, i.direccion, i.direccion_complemento, i.comuna, i.barrio, i.programa]
@@ -944,7 +980,7 @@ function renderInstituciones() {
   }
 
   const badgeMap = { discapacidad:['badge-disc','♿ Disc'], cuidado:['badge-cuid','💚 Cuid'], mesa:['badge-mesa','🤝 Mesa'] };
-  const thAcc = `<th style="width:${esAdmin ? '118px' : '52px'}">Acciones</th>`;
+  const thAcc = `<th style="width:${esAdmin ? '132px' : '52px'}">Acciones</th>`;
 
   $('tabla-inst-wrap').innerHTML = `
     <table>
@@ -968,7 +1004,7 @@ function renderInstituciones() {
               <div class="tabla-acciones">
                 <button class="icon-btn ver" data-view-inst="${i.id}" title="Ver ficha completa" aria-label="Ver ficha completa de ${escapar(i.nombre)}">👁</button>
                 ${esAdmin ? `<button class="icon-btn" data-edit-inst="${i.id}" title="Editar" aria-label="Editar institución ${escapar(i.nombre)}">✏️</button>
-                <button class="icon-btn danger" data-del-inst="${i.id}" title="Borrar" aria-label="Borrar institución ${escapar(i.nombre)}">🗑</button>` : ''}
+                <button class="icon-btn danger" data-desactivar-inst="${i.id}" title="Desactivar" aria-label="Desactivar institución ${escapar(i.nombre)}">🚫</button>` : ''}
               </div>
             </td>`;
           return `<tr>
@@ -995,11 +1031,87 @@ function renderInstituciones() {
     document.querySelectorAll('[data-edit-inst]').forEach(b =>
       b.addEventListener('click', () => editarInstitucion(b.dataset.editInst))
     );
-    document.querySelectorAll('[data-del-inst]').forEach(b =>
-      b.addEventListener('click', () => borrarInstitucion(b.dataset.delInst))
+    document.querySelectorAll('[data-desactivar-inst]').forEach(b =>
+      b.addEventListener('click', () => desactivarInstitucion(b.dataset.desactivarInst))
     );
   }
 }
+
+function renderInstDesactivadas() {
+  const wrap = $('tabla-inst-des-wrap');
+  if (!wrap) return;
+
+  const q   = ($('busc-inst-des')?.value || '').toLowerCase();
+  const cat = $('filt-cat-inst-des')?.value || '';
+
+  const lista = ordenarFilas(
+    state.instituciones.filter((i) => {
+      if (institucionActiva(i)) return false;
+      if (cat && i.categoria !== cat) return false;
+      if (!q) return true;
+      return [i.nombre, i.direccion, i.comuna, i.barrio, i.programa]
+        .some((v) => v && v.toLowerCase().includes(q));
+    }),
+    state.instDesSort,
+    {
+      nombre: (i) => i.nombre,
+      comuna: (i) => i.comuna,
+      desactivado_en: (i) => i.desactivado_en || '',
+    },
+  );
+
+  if (!lista.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-ico">🚫</div><h3>Sin desactivadas</h3><p>Las instituciones desactivadas desde el listado activo aparecerán aquí.</p></div>`;
+    return;
+  }
+
+  const badgeMap = { discapacidad:['badge-disc','♿ Disc'], cuidado:['badge-cuid','💚 Cuid'], mesa:['badge-mesa','🤝 Mesa'] };
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Cat.</th>${thOrdenable('Nombre', 'nombre', state.instDesSort)}${thOrdenable('Comuna', 'comuna', state.instDesSort)}
+          ${thOrdenable('Desactivada', 'desactivado_en', state.instDesSort)}<th>Barrio</th><th style="width:148px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lista.map((i) => {
+          const [cls, lbl] = badgeMap[i.categoria] || ['',''];
+          return `<tr style="opacity:.92">
+            <td><span class="badge ${cls}">${lbl}</span></td>
+            <td><strong>${escapar(i.nombre)}</strong>${i.programa ? `<div style="color:var(--txt2);font-size:11px">${escapar(i.programa)}</div>` : ''}</td>
+            <td>${escapar(i.comuna || '—')}</td>
+            <td><span class="badge badge-inactivo">${escapar(fmtFechaRegistro(i.desactivado_en))}</span></td>
+            <td>${escapar(i.barrio || '—')}</td>
+            <td>
+              <div class="tabla-acciones">
+                <button class="icon-btn ver" data-view-inst="${i.id}" title="Ver ficha" aria-label="Ver ficha de ${escapar(i.nombre)}">👁</button>
+                <button class="icon-btn" data-edit-inst="${i.id}" title="Editar" aria-label="Editar ${escapar(i.nombre)}">✏️</button>
+                <button class="icon-btn ver" data-reactivar-inst="${i.id}" title="Reactivar" aria-label="Reactivar ${escapar(i.nombre)}">♻️</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  enlazarOrdenTabla('tabla-inst-des-wrap', state.instDesSort, renderInstDesactivadas);
+
+  wrap.querySelectorAll('[data-view-inst]').forEach((b) =>
+    b.addEventListener('click', () => verInstitucion(b.dataset.viewInst))
+  );
+  wrap.querySelectorAll('[data-edit-inst]').forEach((b) =>
+    b.addEventListener('click', () => editarInstitucion(b.dataset.editInst))
+  );
+  wrap.querySelectorAll('[data-reactivar-inst]').forEach((b) =>
+    b.addEventListener('click', () => reactivarInstitucion(b.dataset.reactivarInst))
+  );
+}
+
+$('busc-inst-des')?.addEventListener('input', renderInstDesactivadas);
+$('filt-cat-inst-des')?.addEventListener('change', renderInstDesactivadas);
 
 $('busc-inst').addEventListener('input', renderInstituciones);
 $('filt-cat-inst').addEventListener('change', renderInstituciones);
@@ -1285,17 +1397,42 @@ $('btn-guardar-inst').addEventListener('click', async () => {
   cargarInstituciones();
 });
 
-async function borrarInstitucion(id) {
+async function desactivarInstitucion(id) {
   if (!esAdmin) return;
   const i = state.instituciones.find(x => x.id === id);
   if (!i) return;
-  if (!confirm(`¿Borrar "${i.nombre}"? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(
+    `¿Desactivar "${i.nombre}"?\n\nNo se borra el registro: quedará en el módulo Desactivadas y saldrá del mapa y del directorio consulta.`,
+  )) return;
 
-  const { error } = await supabase.from('instituciones').delete().eq('id', id);
+  const { error } = await supabase.from('instituciones').update({
+    activo: false,
+    desactivado_en: new Date().toISOString(),
+    desactivado_por: session.user.id,
+    actualizado_por: session.user.id,
+  }).eq('id', id);
   if (error) { toast(`Error: ${error.message}`, 'error'); return; }
-  toast('Institución borrada');
-  state.instituciones = state.instituciones.filter(x => x.id !== id);
-  renderInstituciones();
+  toast('Institución desactivada');
+  state.instCargadas = false;
+  cargarInstituciones();
+}
+
+async function reactivarInstitucion(id) {
+  if (!esAdmin) return;
+  const i = state.instituciones.find(x => x.id === id);
+  if (!i) return;
+  if (!confirm(`¿Reactivar "${i.nombre}"? Volverá al mapa y al directorio.`)) return;
+
+  const { error } = await supabase.from('instituciones').update({
+    activo: true,
+    desactivado_en: null,
+    desactivado_por: null,
+    actualizado_por: session.user.id,
+  }).eq('id', id);
+  if (error) { toast(`Error: ${error.message}`, 'error'); return; }
+  toast('Institución reactivada');
+  state.instCargadas = false;
+  cargarInstituciones();
 }
 
 // =====================================================================
