@@ -750,7 +750,79 @@ const state = {
   servicioCatalogo: [],
   /** @type {{ id:string, slug:string, etiqueta:string }[]} */
   discCatalogo:   [],
+  instSort: { key: 'nombre', dir: 'asc' },
+  prodSort: { key: 'proveedor', dir: 'asc' },
 };
+
+function alternarOrdenTabla(sortState, key) {
+  if (sortState.key === key) {
+    sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState.key = key;
+    sortState.dir = 'asc';
+  }
+}
+
+function cmpTextoEs(a, b) {
+  return String(a || '').localeCompare(String(b || ''), 'es', { sensitivity: 'base', numeric: true });
+}
+
+/** Clave numérica para ordenar comunas 00, 1…16, corregimientos, 17 sin sede, vacías al final. */
+function claveOrdenComuna(comuna) {
+  const t = String(comuna || '').trim();
+  if (!t || t === '—') return 10000;
+  const up = t.toUpperCase();
+  if (up.startsWith('00 -') || up === CODIGO_COMUNA_FUERA_MEDELLIN.toUpperCase()) return 0;
+  if (up.includes('SIN SEDE FISICA') || up === CODIGO_COMUNA_SIN_SEDE_FISICA.toUpperCase()) return 17;
+  const num = numeroComunaEnTexto(t);
+  if (num != null) return num;
+  return 9999;
+}
+
+function ordenarFilas(lista, sortState, getters) {
+  const mul = sortState.dir === 'asc' ? 1 : -1;
+  const get = getters[sortState.key] || getters.nombre;
+  return [...lista].sort((a, b) => {
+    let c = 0;
+    if (sortState.key === 'comuna') {
+      c = claveOrdenComuna(get(a)) - claveOrdenComuna(get(b));
+      if (c === 0) c = cmpTextoEs(get(a), get(b));
+    } else {
+      c = cmpTextoEs(get(a), get(b));
+    }
+    if (c === 0) {
+      const tieA = a.nombre || a.proveedor || '';
+      const tieB = b.nombre || b.proveedor || '';
+      c = cmpTextoEs(tieA, tieB);
+    }
+    return c * mul;
+  });
+}
+
+function thOrdenable(label, key, sortState) {
+  const activo = sortState.key === key;
+  const flecha = activo ? (sortState.dir === 'asc' ? '↑' : '↓') : '↕';
+  const aria = activo ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+  const titulo = activo
+    ? `Orden ${sortState.dir === 'asc' ? 'ascendente' : 'descendente'}. Clic para invertir.`
+    : `Ordenar por ${label}`;
+  return `<th class="th-sort${activo ? ' activo' : ''}" aria-sort="${aria}">
+    <button type="button" class="th-sort-btn" data-sort-key="${key}" title="${escapar(titulo)}" aria-label="Ordenar por ${escapar(label)}">
+      ${escapar(label)} <span class="th-sort-ind" aria-hidden="true">${flecha}</span>
+    </button>
+  </th>`;
+}
+
+function enlazarOrdenTabla(wrapId, sortState, rerender) {
+  const wrap = $(wrapId);
+  if (!wrap) return;
+  wrap.querySelectorAll('[data-sort-key]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      alternarOrdenTabla(sortState, btn.dataset.sortKey);
+      rerender();
+    });
+  });
+}
 
 // =====================================================================
 //  INSTITUCIONES
@@ -838,12 +910,16 @@ function renderInstituciones() {
   const q   = ($('busc-inst').value || '').toLowerCase();
   const cat = $('filt-cat-inst').value;
 
-  const lista = state.instituciones.filter(i => {
+  const lista = ordenarFilas(
+    state.instituciones.filter(i => {
     if (cat && i.categoria !== cat) return false;
     if (!q) return true;
     return [i.nombre, i.direccion, i.direccion_complemento, i.comuna, i.barrio, i.programa]
       .some(v => v && v.toLowerCase().includes(q));
-  });
+    }),
+    state.instSort,
+    { nombre: (i) => i.nombre, comuna: (i) => i.comuna },
+  );
 
   if (!lista.length) {
     const hint = esAdmin
@@ -860,7 +936,7 @@ function renderInstituciones() {
     <table>
       <thead>
         <tr>
-          <th>Cat.</th><th>Nombre</th><th>Comuna</th><th>Barrio</th><th>Dirección</th>
+          <th>Cat.</th>${thOrdenable('Nombre', 'nombre', state.instSort)}${thOrdenable('Comuna', 'comuna', state.instSort)}<th>Barrio</th><th>Dirección</th>
           <th>Teléfono</th><th>Geo</th>${thAcc}
         </tr>
       </thead>
@@ -895,6 +971,8 @@ function renderInstituciones() {
       </tbody>
     </table>
   `;
+
+  enlazarOrdenTabla('tabla-inst-wrap', state.instSort, renderInstituciones);
 
   document.querySelectorAll('[data-view-inst]').forEach((b) =>
     b.addEventListener('click', () => verInstitucion(b.dataset.viewInst))
@@ -1243,12 +1321,16 @@ async function cargarProductos() {
 
 function renderProductos() {
   const q = ($('busc-prod').value || '').toLowerCase();
-  const lista = state.productos.filter(p => {
+  const lista = ordenarFilas(
+    state.productos.filter(p => {
     if (!q) return true;
     const catLbl = etiquetaProducto(p);
     return [p.proveedor, p.categoria, catLbl, p.oferta, p.direccion, p.comuna, p.barrio]
       .some(v => v && v.toLowerCase().includes(q));
-  });
+    }),
+    state.prodSort,
+    { proveedor: (p) => p.proveedor, comuna: (p) => p.comuna },
+  );
 
   if (!lista.length) {
     const hint = esAdmin
@@ -1264,7 +1346,7 @@ function renderProductos() {
     <table>
       <thead>
         <tr>
-          <th>Categoría</th><th>Proveedor</th><th>Comuna</th><th>Barrio</th><th>Oferta</th><th>Contacto</th><th>Geo</th>
+          <th>Categoría</th>${thOrdenable('Proveedor', 'proveedor', state.prodSort)}${thOrdenable('Comuna', 'comuna', state.prodSort)}<th>Barrio</th><th>Oferta</th><th>Contacto</th><th>Geo</th>
           ${thAccP}
         </tr>
       </thead>
@@ -1292,6 +1374,8 @@ function renderProductos() {
       </tbody>
     </table>
   `;
+
+  enlazarOrdenTabla('tabla-prod-wrap', state.prodSort, renderProductos);
 
   document.querySelectorAll('[data-view-prod]').forEach((b) =>
     b.addEventListener('click', () => verProducto(b.dataset.viewProd))
