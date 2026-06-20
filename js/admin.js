@@ -17,6 +17,7 @@ import {
   esDireccionSinNomenclatura,
 } from './codigos-ubicacion.js';
 import { parseTelefonos, serializarTelefonos, textoTelefonos } from './telefonos.js';
+import { parseEmails, serializarEmails, textoEmails } from './emails.js';
 
 const { perfil, session } = await requireAuth({ rolesPermitidos: ['admin', 'consulta'] });
 const esAdmin = perfil.rol === 'admin';
@@ -107,18 +108,18 @@ function normalizarPaginaWeb(s) {
 
 /** Al editar registros viejos con todo en email: separa URL si aún no hay pagina_web. */
 function rellenarContactoInstitucion(i) {
-  let email = i.email || '';
+  let emailRaw = i.email || '';
   let web = i.pagina_web || '';
-  if (!web && email) {
-    const partes = String(email).split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
+  if (!web && emailRaw) {
+    const partes = String(emailRaw).split(/[\s,;|]+/).map((x) => x.trim()).filter(Boolean);
     const urls = partes.filter((p) => /^https?:\/\//i.test(p) || /^www\./i.test(p) || (p.includes('.') && !p.includes('@')));
     const mails = partes.filter((p) => p.includes('@'));
     if (urls.length) {
       web = urls[0];
-      email = mails.length ? mails.join(' ') : partes.filter((p) => p !== web).join(' ').trim() || null;
+      emailRaw = mails.length ? serializarEmails(mails) : null;
     }
   }
-  $('inst-email').value = email || '';
+  cargarEmailsInst(emailRaw);
   $('inst-pagina_web').value = web || '';
 }
 
@@ -666,7 +667,7 @@ async function verInstitucion(id) {
     ]),
     fichaBloque('Contacto', [
       fichaFila('Teléfonos', textoTelefonos(i.telefono)),
-      fichaFila('Correo', i.email),
+      fichaFila('Correos', textoEmails(i.email)),
       fichaFila('Página web', i.pagina_web ? fichaEnlace(i.pagina_web) : null, { html: !!fichaTexto(i.pagina_web) }),
       fichaFila('Persona de contacto', i.contacto_persona),
     ]),
@@ -722,7 +723,7 @@ function verProducto(id) {
     fichaBloque('Contacto', [
       fichaFila('Persona de contacto', p.contacto_persona),
       fichaFila('Teléfonos', textoTelefonos(p.telefono)),
-      fichaFila('Correo', p.email),
+      fichaFila('Correos', textoEmails(p.email)),
       fichaFila('Página web', p.pagina_web ? fichaEnlace(p.pagina_web) : null, { html: !!fichaTexto(p.pagina_web) }),
       fichaFila('Contacto (legado)', p.contacto),
     ]),
@@ -1177,13 +1178,75 @@ function leerTelefonosProd() {
   return leerTelefonosLista('prod-telefonos-list', 'prod-tel-input');
 }
 
+function actualizarBotonesQuitarEmailLista(listId) {
+  const rows = document.querySelectorAll(`#${listId} .tel-row`);
+  const soloUno = rows.length <= 1;
+  rows.forEach((row) => {
+    const btn = row.querySelector('.tel-row-del');
+    if (btn) {
+      btn.disabled = soloUno;
+      btn.title = soloUno ? 'Debe quedar al menos un campo' : 'Quitar este correo';
+    }
+  });
+}
+
+function agregarFilaEmailLista(listId, inputClass, valor = '') {
+  const list = $(listId);
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'tel-row';
+  const idx = list.querySelectorAll('.tel-row').length + 1;
+  row.innerHTML = `
+    <input type="email" class="${inputClass}" placeholder="contacto@organizacion.org" value="${escapar(valor)}" autocomplete="email" aria-label="Correo ${idx}">
+    <button type="button" class="tel-row-del" title="Quitar este correo" aria-label="Quitar correo">×</button>`;
+  row.querySelector('.tel-row-del').addEventListener('click', () => {
+    row.remove();
+    if (!list.querySelector('.tel-row')) agregarFilaEmailLista(listId, inputClass, '');
+    actualizarBotonesQuitarEmailLista(listId);
+  });
+  list.appendChild(row);
+  actualizarBotonesQuitarEmailLista(listId);
+}
+
+function cargarEmailsLista(listId, inputClass, raw) {
+  const list = $(listId);
+  if (!list) return;
+  list.innerHTML = '';
+  const mails = parseEmails(raw);
+  if (!mails.length) agregarFilaEmailLista(listId, inputClass, '');
+  else mails.forEach((m) => agregarFilaEmailLista(listId, inputClass, m));
+}
+
+function leerEmailsLista(listId, inputClass) {
+  return [...document.querySelectorAll(`#${listId} .${inputClass}`)]
+    .map((inp) => inp.value.trim())
+    .filter(Boolean);
+}
+
+function cargarEmailsInst(raw) {
+  cargarEmailsLista('inst-emails-list', 'inst-email-input', raw);
+}
+
+function leerEmailsInst() {
+  return leerEmailsLista('inst-emails-list', 'inst-email-input');
+}
+
+function cargarEmailsProd(raw) {
+  cargarEmailsLista('prod-emails-list', 'prod-email-input', raw);
+}
+
+function leerEmailsProd() {
+  return leerEmailsLista('prod-emails-list', 'prod-email-input');
+}
+
 /** Resumen para tabla admin (productos). */
 function resumenContactoProducto(p) {
   const partes = [];
   if (p.contacto_persona) partes.push(p.contacto_persona);
   const t = textoTelefonos(p.telefono);
   if (t) partes.push(t);
-  if (p.email) partes.push(p.email);
+  const e = textoEmails(p.email);
+  if (e) partes.push(e);
   if (p.pagina_web) partes.push(p.pagina_web);
   if (partes.length) return partes.join(' · ');
   return p.contacto || '';
@@ -1202,7 +1265,7 @@ function rellenarContactoProducto(p) {
     const mails = partes.filter((x) => x.includes('@'));
     const urls = partes.filter((x) => /^https?:\/\//i.test(x) || /^www\./i.test(x) || (x.includes('.') && !x.includes('@')));
     const sinMailUrl = partes.filter((x) => !mails.includes(x) && !urls.includes(x));
-    if (mails.length) email = mails.join(' ');
+    if (mails.length) email = serializarEmails(mails);
     if (urls.length) web = urls[0];
     const nums = parseTelefonos(sinMailUrl.join(' ') || legacy);
     if (nums.length && nums[0] !== legacy) telefono = nums.join('\n');
@@ -1219,12 +1282,12 @@ function rellenarContactoProducto(p) {
     const mails = split.filter((x) => x.includes('@'));
     if (urls.length) {
       web = urls[0];
-      email = mails.join(' ') || '';
+      email = mails.length ? serializarEmails(mails) : null;
     }
   }
 
   $('prod-contacto_persona').value = persona;
-  $('prod-email').value = email || '';
+  cargarEmailsProd(email);
   $('prod-pagina_web').value = web || '';
   cargarTelefonosProd(telefono);
 }
@@ -1232,6 +1295,8 @@ function rellenarContactoProducto(p) {
 if (esAdmin) {
   $('btn-inst-tel-add')?.addEventListener('click', () => agregarFilaTelefonoLista('inst-telefonos-list', 'inst-tel-input', ''));
   $('btn-prod-tel-add')?.addEventListener('click', () => agregarFilaTelefonoLista('prod-telefonos-list', 'prod-tel-input', ''));
+  $('btn-inst-email-add')?.addEventListener('click', () => agregarFilaEmailLista('inst-emails-list', 'inst-email-input', ''));
+  $('btn-prod-email-add')?.addEventListener('click', () => agregarFilaEmailLista('prod-emails-list', 'prod-email-input', ''));
 
   $('btn-nueva-inst').addEventListener('click', () => {
     $('modal-inst-titulo').textContent = 'Nueva institución';
@@ -1241,6 +1306,8 @@ if (esAdmin) {
     syncSinSedeCamposInst();
     limpiarChecksCatalogos();
     cargarTelefonosInst(null);
+    cargarEmailsInst(null);
+    $('inst-pagina_web').value = '';
     abrirModal('modal-inst');
   });
 }
@@ -1337,7 +1404,7 @@ $('btn-guardar-inst').addEventListener('click', async () => {
     latitud:                      latGuardar,
     longitud:                     lonGuardar,
     telefono:                     serializarTelefonos(leerTelefonosInst()),
-    email:                        $('inst-email').value.trim() || null,
+    email:                        serializarEmails(leerEmailsInst()),
     pagina_web:                   normalizarPaginaWeb($('inst-pagina_web').value),
     contacto_persona:             $('inst-contacto_persona').value.trim() || null,
     servicios:                    $('inst-servicios').value.trim() || null,
@@ -1608,7 +1675,7 @@ $('btn-guardar-prod').addEventListener('click', async () => {
     oferta: $('prod-oferta').value.trim() || null,
     contacto_persona: $('prod-contacto_persona').value.trim() || null,
     telefono: serializarTelefonos(leerTelefonosProd()),
-    email: $('prod-email').value.trim() || null,
+    email: serializarEmails(leerEmailsProd()),
     pagina_web: normalizarPaginaWeb($('prod-pagina_web').value),
     contacto: null,
     direccion: $('prod-direccion').value.trim() || null,

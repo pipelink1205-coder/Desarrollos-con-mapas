@@ -770,6 +770,7 @@ import { requireAuth } from './js/auth-guard.js';
 import { supabase, cerrarSesion } from './js/supabase-client.js';
 import { esComunaCodigoReporte } from './js/codigos-ubicacion.js';
 import { parseTelefonos } from './js/telefonos.js';
+import { parseEmails } from './js/emails.js';
 
 const { perfil } = await requireAuth();
 
@@ -1139,6 +1140,15 @@ function htmlTelefonosMapa(raw) {
   const nums = parseTelefonos(raw);
   if (!nums.length) return '';
   return nums.map((t) => escModalHtml(t)).join('<br>');
+}
+
+function htmlEmailsMapa(raw) {
+  const mails = parseEmails(raw);
+  if (!mails.length) return '';
+  return mails.map((m) => {
+    const safe = escModalHtml(m);
+    return `<a href="mailto:${safe}" style="color:var(--azul-med);word-break:break-all">${safe}</a>`;
+  }).join('<br>');
 }
 
 /** Slugs del catálogo que aplica la institución (DB + etiquetas legadas). */
@@ -2212,7 +2222,7 @@ function htmlContactoProductoCard(p) {
   if (p.contacto_persona) lineas.push(escProdHtml(p.contacto_persona));
   const telHtml = htmlTelefonosMapa(p.tel || p.contacto);
   if (telHtml) lineas.push(telHtml);
-  if (p.email) lineas.push(escProdHtml(p.email));
+  if (p.email) lineas.push(htmlEmailsMapa(p.email));
   const web = valorWebModal(p.web);
   if (web) lineas.push(web);
   const leg = contactoProductoLegacy(p);
@@ -2231,7 +2241,7 @@ function camposFichaProducto(p) {
     ['🏙 Comuna / barrio', zona || null],
     ['👤 Contacto', p.contacto_persona || null],
     ['📞 Teléfono', telFicha || null],
-    ['✉ Correo', p.email || null],
+    ['✉ Correo', htmlEmailsMapa(p.email) || null],
     ['🌐 Página web', valorWebModal(p.web)],
   ];
 }
@@ -2401,7 +2411,7 @@ function htmlFichaInstitucion(o) {
     ['👥 Cupos', o.cupos], ['🌍 Cobertura', o.cobertura], ['👤 Población', o.poblacion],
     ['📋 Requisitos', o.req],
     ['📋 Servicio', o.srv ? o.srv.replace(/\n/g, ', ') : null],
-    ['📞 Teléfono', htmlTelefonosMapa(o.tel) || null], ['✉ Correo', o.email],
+    ['📞 Teléfono', htmlTelefonosMapa(o.tel) || null], ['✉ Correo', htmlEmailsMapa(o.email) || null],
     ['🌐 Página web', webHtml],
     ['🔗 Nivel PP', o.niv],
   ];

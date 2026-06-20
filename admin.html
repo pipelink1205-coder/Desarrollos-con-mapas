@@ -371,14 +371,16 @@ th.th-sort{padding:0;vertical-align:middle}
             <button type="button" class="btn-tel-add" id="btn-inst-tel-add" title="Añadir otro número">+ Agregar teléfono</button>
             <div class="hint">Un número por campo. Usa + para añadir y × para quitar si ya no aplica.</div>
           </div>
-          <div class="field">
-            <label>Correo electrónico</label>
-            <input type="email" id="inst-email" placeholder="contacto@organizacion.org" autocomplete="email">
+          <div class="field full">
+            <label>Correos electrónicos</label>
+            <div id="inst-emails-list" class="tel-list" aria-live="polite"></div>
+            <button type="button" class="btn-tel-add" id="btn-inst-email-add" title="Añadir otro correo">+ Agregar correo</button>
+            <div class="hint">Un correo por campo. Usa + para añadir y × para quitar si ya no aplica.</div>
           </div>
           <div class="field full">
-            <label>Página web</label>
-            <input type="url" id="inst-pagina_web" placeholder="https://www.ejemplo.org">
-            <div class="hint">Enlace público de la institución (se muestra aparte del correo en la ficha del mapa).</div>
+            <label for="inst-pagina_web">Página web</label>
+            <input type="text" id="inst-pagina_web" placeholder="www.ejemplo.org o https://www.ejemplo.org" autocomplete="url">
+            <div class="hint">Enlace al sitio de la institución. Puede escribir solo el dominio; en el mapa se abre en una pestaña nueva. No use el correo aquí.</div>
           </div>
           <div class="field full">
             <label>Persona de contacto</label>
@@ -497,13 +499,16 @@ th.th-sort{padding:0;vertical-align:middle}
             <button type="button" class="btn-tel-add" id="btn-prod-tel-add" title="Añadir otro número">+ Agregar teléfono</button>
             <div class="hint">Un número por campo. Usa + para añadir y × para quitar.</div>
           </div>
-          <div class="field">
-            <label>Correo electrónico</label>
-            <input type="email" id="prod-email" placeholder="contacto@proveedor.com" autocomplete="email">
+          <div class="field full">
+            <label>Correos electrónicos</label>
+            <div id="prod-emails-list" class="tel-list" aria-live="polite"></div>
+            <button type="button" class="btn-tel-add" id="btn-prod-email-add" title="Añadir otro correo">+ Agregar correo</button>
+            <div class="hint">Un correo por campo. Usa + para añadir y × para quitar.</div>
           </div>
-          <div class="field">
-            <label>Página web</label>
-            <input type="url" id="prod-pagina_web" placeholder="https://www.ejemplo.com">
+          <div class="field full">
+            <label for="prod-pagina_web">Página web</label>
+            <input type="text" id="prod-pagina_web" placeholder="www.ejemplo.com o https://www.ejemplo.com" autocomplete="url">
+            <div class="hint">Enlace al sitio del proveedor. Puede escribir solo el dominio; en el mapa se abre en pestaña nueva.</div>
           </div>
 
           <div class="fieldset-titulo">Ubicación</div>
