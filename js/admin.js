@@ -1,8 +1,7 @@
 // =====================================================================
 //  PANEL DE ADMINISTRACIÓN / DIRECTORIO (solo lectura para rol consulta)
 // =====================================================================
-//  Admin: instituciones, productos, usuarios (CRUD).
-//  Consulta: instituciones y productos en solo lectura; sin pestaña usuarios.
+//  Super admin: instituciones, productos y usuarios. Admin editor: CRUD sin usuarios. Consulta: solo lectura.
 // =====================================================================
 
 import { requireAuth } from './auth-guard.js';
@@ -15,12 +14,16 @@ import {
   coordenadasEnMedellin,
   esComunaCodigoReporte,
   esDireccionSinNomenclatura,
+  opcionesMapaValle,
+  opcionesTileValle,
 } from './codigos-ubicacion.js';
 import { parseTelefonos, serializarTelefonos, textoTelefonos } from './telefonos.js';
 import { parseEmails, serializarEmails, textoEmails } from './emails.js';
+import { normalizarCedulaUsuario, validarCedulaUsuario } from './usuario-auth.js';
 
-const { perfil, session } = await requireAuth({ rolesPermitidos: ['admin', 'consulta'] });
-const esAdmin = perfil.rol === 'admin';
+const { perfil, session } = await requireAuth({ rolesPermitidos: ['admin', 'super_admin', 'consulta'] });
+const esSuperAdmin = perfil.rol === 'super_admin';
+const esAdmin = esSuperAdmin || perfil.rol === 'admin';
 
 /** Token JWT actual para llamadas a /api/* (no usar `session` del arranque: puede estar vencido). */
 async function bearerToken() {
@@ -56,18 +59,22 @@ if (!esAdmin) {
   const hs = document.getElementById('hdr-sub');
   if (ht) ht.textContent = 'Directorio de instituciones';
   if (hs) hs.textContent = 'Consulta y filtra la oferta registrada (solo lectura)';
-  const tabU = document.getElementById('tab-usuarios');
-  if (tabU) tabU.style.display = 'none';
-  const pageU = document.getElementById('page-usuarios');
-  if (pageU) pageU.hidden = true;
   const tabDes = document.getElementById('tab-inst-desactivadas');
   if (tabDes) tabDes.style.display = 'none';
   const pageDes = document.getElementById('page-inst-desactivadas');
   if (pageDes) pageDes.hidden = true;
-  ['btn-nueva-inst', 'btn-nuevo-prod', 'btn-nuevo-user'].forEach((id) => {
+  ['btn-nueva-inst', 'btn-nuevo-prod'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
+}
+if (!esSuperAdmin) {
+  const tabU = document.getElementById('tab-usuarios');
+  if (tabU) tabU.style.display = 'none';
+  const pageU = document.getElementById('page-usuarios');
+  if (pageU) pageU.hidden = true;
+  const btnNew = document.getElementById('btn-nuevo-user');
+  if (btnNew) btnNew.style.display = 'none';
 }
 
 // ---------------------------------------------------------------------
@@ -214,11 +221,10 @@ function _inicializarMiniMapa(lat, lng) {
     return;
   }
   if (!_geocodMapReady) {
-    _geocodMap = L.map('geocod-mapa', { zoomControl: true, attributionControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    _geocodMap = L.map('geocod-mapa', opcionesMapaValle(L, { zoomControl: true, attributionControl: true }));
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opcionesTileValle(L, {
       attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(_geocodMap);
+    })).addTo(_geocodMap);
     _geocodMapReady = true;
   }
 
@@ -418,11 +424,8 @@ function _mostrarBadgesAutoProd(visible) {
 function _inicializarMiniMapaProd(lat, lng) {
   if (typeof L === 'undefined') return;
   if (!_prodGeocodMapReady) {
-    _prodGeocodMap = L.map('prod-geocod-mapa', { zoomControl: true, attributionControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(_prodGeocodMap);
+    _prodGeocodMap = L.map('prod-geocod-mapa', opcionesMapaValle(L, { zoomControl: true, attributionControl: true }));
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opcionesTileValle(L)).addTo(_prodGeocodMap);
     _prodGeocodMapReady = true;
   }
   _prodGeocodMap.setView([lat, lng], 17);
@@ -761,7 +764,7 @@ document.querySelectorAll('.tab').forEach(tab => {
       else renderInstDesactivadas();
     }
     if (tab.dataset.page === 'productos'     && !state.prodCargados) cargarProductos();
-    if (esAdmin && tab.dataset.page === 'usuarios' && !state.usersCargados) cargarUsuarios();
+    if (esSuperAdmin && tab.dataset.page === 'usuarios' && !state.usersCargados) cargarUsuarios();
   });
 });
 
@@ -1732,6 +1735,12 @@ async function cargarUsuarios() {
   renderUsuarios();
 }
 
+function etiquetaRol(rol) {
+  if (rol === 'super_admin') return 'Super administrador';
+  if (rol === 'admin') return 'Administrador editor';
+  return 'Consulta';
+}
+
 function renderUsuarios() {
   const q = ($('busc-user').value || '').toLowerCase();
   const lista = state.usuarios.filter(u => {
@@ -1759,7 +1768,7 @@ function renderUsuarios() {
           return `<tr>
             <td><strong>${escapar(u.nombre_completo)}</strong>${eres ? ' <span style="color:var(--txt2);font-size:10px">(tú)</span>' : ''}</td>
             <td style="font-size:11px;color:var(--txt2)">${escapar(u.cedula || '—')}</td>
-            <td><span class="badge badge-${u.rol}">${u.rol === 'admin' ? 'Administrador' : 'Consulta'}</span></td>
+            <td><span class="badge badge-${u.rol}">${etiquetaRol(u.rol)}</span></td>
             <td><span class="badge badge-${u.activo ? 'activo' : 'inactivo'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td>${fecha}</td>
             <td>
@@ -1782,7 +1791,7 @@ function renderUsuarios() {
   );
 }
 
-if (esAdmin) {
+if (esSuperAdmin) {
   $('busc-user').addEventListener('input', renderUsuarios);
 }
 
@@ -1791,58 +1800,115 @@ function syncPasswordRulesUsuario() {
   const hint = $('hint-password-user');
   if (!pw || !hint) return;
   if ($('user-id').value) return;
-  if ($('user-rol-input').value === 'consulta') {
-    pw.minLength = 5;
-    hint.textContent = 'Consulta: mínimo 5 caracteres. Administrador: mínimo 8.';
-  } else {
-    pw.minLength = 8;
-    hint.textContent = 'Administrador: mínimo 8 caracteres.';
-  }
+  const rol = $('user-rol-input').value;
+  pw.minLength = rol === 'consulta' ? 5 : 8;
+  hint.textContent = 'El usuario deberá cambiarla al primer inicio de sesión.';
 }
 
-if (esAdmin) {
+if (esSuperAdmin) {
   $('user-rol-input').addEventListener('change', syncPasswordRulesUsuario);
 }
 
-if (esAdmin) {
+if (esSuperAdmin) {
   $('btn-nuevo-user').addEventListener('click', () => {
     $('modal-user-titulo').textContent = 'Nuevo usuario';
     $('form-user').reset();
     $('user-id').value = '';
-    $('field-email').style.display     = 'block';
-    $('field-password').style.display  = 'block';
-    $('field-cedula').style.display    = 'block';
-    $('user-email-input').required     = true;
-    $('user-password-input').required  = true;
-    $('user-rol-input').value          = 'consulta';
-    $('user-activo-input').value       = 'true';
-    $('user-cedula-input').value       = '';
+    $('field-email').style.display          = 'none';
+    $('field-password').style.display       = 'block';
+    $('field-password-reset').style.display = 'none';
+    $('field-cedula').style.display         = 'block';
+    $('user-email-input').required          = false;
+    $('user-password-input').required       = true;
+    $('user-cedula-input').required         = true;
+    $('user-rol-input').disabled            = false;
+    $('user-rol-input').value               = 'consulta';
+    const hintRol = $('hint-rol-user');
+    if (hintRol) hintRol.textContent = 'Al crear usuarios nuevos use consulta o administrador editor. Puede promover a super administrador al editar.';
+    $('user-activo-input').value            = 'true';
+    $('user-cedula-input').value            = '';
+    $('user-password-reset').value          = '';
     syncPasswordRulesUsuario();
     abrirModal('modal-user');
   });
+
+  $('btn-asignar-temp-pw').addEventListener('click', () => { asignarPasswordTemporal(); });
 }
 
 function editarUsuario(id) {
-  if (!esAdmin) return;
+  if (!esSuperAdmin) return;
   const u = state.usuarios.find(x => x.id === id);
   if (!u) return;
   $('modal-user-titulo').textContent = 'Editar usuario';
   $('user-id').value           = u.id;
   $('user-nombre-input').value = u.nombre_completo;
   $('user-rol-input').value    = u.rol;
+  $('user-rol-input').disabled = u.id === perfil.id;
+  const hintRol = $('hint-rol-user');
+  if (hintRol) {
+    hintRol.textContent = u.id === perfil.id
+      ? 'No puede cambiar su propio rol (evita quedarse sin super administrador).'
+      : 'Puede asignar consulta, administrador editor o super administrador.';
+  }
   $('user-activo-input').value = String(u.activo);
   $('user-cedula-input').value = u.cedula || '';
-  // Email y contraseña no se editan desde aquí (Supabase Auth)
-  $('field-email').style.display    = 'none';
-  $('field-password').style.display = 'none';
-  $('field-cedula').style.display    = 'block';
-  $('user-email-input').required    = false;
-  $('user-password-input').required = false;
+  $('field-email').style.display          = 'none';
+  $('field-password').style.display       = 'none';
+  $('field-password-reset').style.display = u.id === perfil.id ? 'none' : 'block';
+  $('field-cedula').style.display         = 'block';
+  $('user-email-input').required          = false;
+  $('user-password-input').required       = false;
+  $('user-cedula-input').required         = true;
+  $('user-password-reset').value          = '';
   abrirModal('modal-user');
 }
 
+async function asignarPasswordTemporal(opciones = {}) {
+  const { silencioso = false } = opciones;
+  const id = $('user-id').value;
+  if (!id) return false;
+  const u = state.usuarios.find(x => x.id === id);
+  if (!u) return false;
+  const password = ($('user-password-reset').value || '').trim();
+  const rolEfectivo = $('user-rol-input').disabled ? u.rol : ($('user-rol-input').value || u.rol);
+  const minPw = rolEfectivo === 'consulta' ? 5 : 8;
+  if (password.length < minPw) {
+    if (!silencioso) {
+      toast(
+        rolEfectivo === 'consulta'
+          ? 'La contraseña temporal debe tener al menos 5 caracteres'
+          : 'La contraseña temporal debe tener al menos 8 caracteres (administradores)',
+        'error',
+      );
+    }
+    return false;
+  }
+  const token = await bearerToken();
+  if (!token) {
+    if (!silencioso) toast('Sesión expirada. Vuelve a iniciar sesión.', 'error');
+    return false;
+  }
+  const respuesta = await fetch('/api/reset-password-usuario', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ user_id: id, password }),
+  });
+  if (!respuesta.ok) {
+    if (!silencioso) toast(`Error: ${await parseApiError(respuesta)}`, 'error');
+    return false;
+  }
+  if (!silencioso) {
+    toast('Contraseña temporal asignada. El usuario deberá cambiarla al iniciar sesión.');
+  }
+  $('user-password-reset').value = '';
+  return true;
+}
+
 $('btn-guardar-user').addEventListener('click', async () => {
-  if (!esAdmin) return;
+  if (!esSuperAdmin) return;
   const id = $('user-id').value;
   const nombre = $('user-nombre-input').value.trim();
   const rol    = $('user-rol-input').value;
@@ -1850,31 +1916,71 @@ $('btn-guardar-user').addEventListener('click', async () => {
 
   if (!nombre) { toast('El nombre es obligatorio', 'error'); return; }
 
-  const cedulaDigits = ($('user-cedula-input').value || '').replace(/\D/g, '');
+  const cedulaDigits = normalizarCedulaUsuario($('user-cedula-input').value);
+  const errCedula = validarCedulaUsuario(cedulaDigits);
 
   if (id) {
-    // EDITAR perfil existente
-    const { error } = await supabase
-      .from('perfiles')
-      .update({
-        nombre_completo: nombre,
-        rol,
-        activo,
-        cedula: cedulaDigits || null,
-      })
-      .eq('id', id);
+    const u = state.usuarios.find(x => x.id === id);
+    const cedulaFinal = cedulaDigits || u?.cedula || '';
+    const errCedulaEdit = validarCedulaUsuario(cedulaFinal);
+    if (errCedulaEdit) {
+      toast(`${errCedulaEdit} Sin cédula guardada no puede iniciar sesión.`, 'error');
+      return;
+    }
+
+    const payload = {
+      nombre_completo: nombre,
+      activo,
+      cedula: cedulaFinal,
+    };
+    if (id !== perfil.id) {
+      if (!['consulta', 'admin', 'super_admin'].includes(rol)) {
+        toast('Rol inválido', 'error');
+        return;
+      }
+      if (u?.rol === 'super_admin' && rol !== 'super_admin') {
+        const otrosSuper = state.usuarios.filter(x => x.rol === 'super_admin' && x.id !== id);
+        if (!otrosSuper.length) {
+          toast('Debe quedar al menos un super administrador activo.', 'error');
+          return;
+        }
+      }
+      payload.rol = rol;
+    }
+
+    const { error } = await supabase.from('perfiles').update(payload).eq('id', id);
     if (error) { toast(`Error: ${error.message}`, 'error'); return; }
-    toast('Usuario actualizado');
+
+    const tempPw = ($('user-password-reset').value || '').trim();
+    if (tempPw) {
+      const okPw = await asignarPasswordTemporal({ silencioso: true });
+      if (!okPw) {
+        toast('Datos guardados, pero falló la contraseña temporal. Revise longitud (8 para administradores) y pulse «Asignar contraseña temporal».', 'error');
+        state.usersCargados = false;
+        await cargarUsuarios();
+        return;
+      }
+      toast('Usuario actualizado y contraseña temporal asignada');
+    } else {
+      toast('Usuario actualizado');
+    }
   } else {
-    // CREAR usuario nuevo: requiere llamar al endpoint serverless
-    const email    = $('user-email-input').value.trim();
+    if (!['consulta', 'admin'].includes(rol)) {
+      toast('Al crear, elija consulta o administrador editor. Para super administrador, guarde el usuario y edítelo.', 'error');
+      return;
+    }
+    if (errCedula) {
+      toast(`${errCedula} Es el dato con el que inicia sesión.`, 'error');
+      return;
+    }
+    const emailOpcional = $('user-email-input').value.trim();
     const password = $('user-password-input').value;
     const minPw    = rol === 'consulta' ? 5 : 8;
-    if (!email || password.length < minPw) {
+    if (password.length < minPw) {
       toast(
         rol === 'consulta'
-          ? 'Correo y contraseña (mínimo 5 caracteres para consulta) son obligatorios'
-          : 'Correo y contraseña (mínimo 8 caracteres para administrador) son obligatorios',
+          ? 'Contraseña temporal obligatoria (mínimo 5 caracteres para consulta)'
+          : 'Contraseña temporal obligatoria (mínimo 8 caracteres para administrador)',
         'error',
       );
       return;
@@ -1892,19 +1998,19 @@ $('btn-guardar-user').addEventListener('click', async () => {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        email,
+        ...(emailOpcional ? { email: emailOpcional } : {}),
         password,
         nombre_completo: nombre,
         rol,
         activo,
-        ...(cedulaDigits ? { cedula: cedulaDigits } : {}),
+        cedula: cedulaDigits,
       }),
     });
     if (!respuesta.ok) {
       toast(`Error: ${await parseApiError(respuesta)}`, 'error');
       return;
     }
-    toast('Usuario creado');
+    toast('Usuario creado. Entra con la cédula y la contraseña temporal.');
   }
 
   cerrarModal('modal-user');
@@ -1913,7 +2019,7 @@ $('btn-guardar-user').addEventListener('click', async () => {
 });
 
 async function borrarUsuario(id) {
-  if (!esAdmin) return;
+  if (!esSuperAdmin) return;
   const u = state.usuarios.find(x => x.id === id);
   if (!u) return;
   if (u.id === perfil.id) { toast('No puedes borrarte a ti mismo', 'error'); return; }

@@ -40,7 +40,7 @@ export async function obtenerPerfil() {
 
   const { data, error } = await supabase
     .from('perfiles')
-    .select('id, nombre_completo, rol, activo')
+    .select('id, nombre_completo, rol, activo, debe_cambiar_password')
     .eq('id', session.user.id)
     .single();
 

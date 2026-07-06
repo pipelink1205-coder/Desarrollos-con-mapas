@@ -98,13 +98,20 @@ export async function requireAuth({ requiereAdmin = false, rolesPermitidos = nul
       return new Promise(() => {});
     }
 
+    const path = window.location.pathname || '';
+    if (perfil.debe_cambiar_password && !path.includes('cambiar-password')) {
+      const next = encodeURIComponent(path + window.location.search);
+      window.location.href = `/cambiar-password.html?next=${next}`;
+      return new Promise(() => {});
+    }
+
     if (rolesPermitidos?.length) {
       if (!rolesPermitidos.includes(perfil.rol)) {
         alert('No tienes permisos para acceder a esta página.');
         window.location.href = '/mapa.html';
         return new Promise(() => {});
       }
-    } else if (requiereAdmin && perfil.rol !== 'admin') {
+    } else if (requiereAdmin && !['admin', 'super_admin'].includes(perfil.rol)) {
       alert('No tienes permisos para acceder a esta página.');
       window.location.href = '/mapa.html';
       return new Promise(() => {});

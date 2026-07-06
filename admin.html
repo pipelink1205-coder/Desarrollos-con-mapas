@@ -81,6 +81,7 @@ th.th-sort{padding:0;vertical-align:middle}
 .badge-prod{background:#ede9fe;color:#7c3aed}
 .badge-admin{background:var(--rojo-bg);color:var(--rojo)}
 .badge-consulta{background:var(--gris);color:var(--txt2)}
+.badge-super_admin{background:#fef3c7;color:#92400e}
 .badge-activo{background:var(--verde-bg);color:var(--verde)}
 .badge-inactivo{background:var(--rojo-bg);color:var(--rojo)}
 .tabla-acciones{display:flex;gap:5px;flex-wrap:nowrap}
@@ -571,25 +572,35 @@ th.th-sort{padding:0;vertical-align:middle}
             <label for="user-nombre-input">Nombre completo *</label>
             <input type="text" id="user-nombre-input" required>
           </div>
-          <div class="field full" id="field-email">
-            <label for="user-email-input">Correo electrónico *</label>
-            <input type="email" id="user-email-input" required placeholder="cualquier correo válido">
+          <div class="field full" id="field-email" style="display:none">
+            <label for="user-email-input">Correo electrónico (opcional)</label>
+            <input type="email" id="user-email-input" placeholder="Solo si necesita un correo distinto al interno">
+            <div class="hint">No es necesario: el acceso es con la cédula. Supabase guarda un correo técnico automático.</div>
           </div>
           <div class="field full" id="field-cedula">
-            <label>Cédula / documento</label>
-            <input type="text" id="user-cedula-input" inputmode="numeric" autocomplete="off" placeholder="Opcional: permite iniciar sesión con el número sin usar el correo">
+            <label for="user-cedula-input">Cédula / documento *</label>
+            <input type="text" id="user-cedula-input" inputmode="numeric" autocomplete="off" required placeholder="Ej: 1037654321 — con esto inicia sesión">
+            <div class="hint" id="hint-cedula-user">El usuario entra con este número y la contraseña temporal (no necesita correo).</div>
           </div>
           <div class="field full" id="field-password">
             <label>Contraseña temporal *</label>
-            <input type="text" id="user-password-input" required minlength="5">
-            <div class="hint" id="hint-password-user">Consulta: mínimo 5 caracteres. Administrador: mínimo 8. El usuario podrá cambiarla luego.</div>
+            <input type="text" id="user-password-input" required minlength="5" autocomplete="off">
+            <div class="hint" id="hint-password-user">El usuario deberá cambiarla al primer inicio de sesión.</div>
+          </div>
+          <div class="field full" id="field-password-reset" style="display:none">
+            <label for="user-password-reset">Restablecer contraseña temporal</label>
+            <input type="text" id="user-password-reset" minlength="5" autocomplete="off" placeholder="Nueva contraseña temporal">
+            <div class="hint">Escriba la contraseña y pulse «Asignar contraseña temporal» o «Guardar» (si el campo tiene texto, se aplica al guardar). El usuario deberá cambiarla al iniciar sesión.</div>
+            <button type="button" class="btn btn-ghost" id="btn-asignar-temp-pw" style="margin-top:10px;width:100%">Asignar contraseña temporal</button>
           </div>
           <div class="field">
             <label>Rol *</label>
             <select id="user-rol-input" required>
               <option value="consulta">Consulta (solo ver)</option>
-              <option value="admin">Administrador</option>
+              <option value="admin">Administrador editor (sin usuarios)</option>
+              <option value="super_admin">Super administrador</option>
             </select>
+            <div class="hint" id="hint-rol-user">Al crear usuarios nuevos use consulta o administrador editor. Puede promover a super administrador al editar.</div>
           </div>
           <div class="field">
             <label>Estado</label>

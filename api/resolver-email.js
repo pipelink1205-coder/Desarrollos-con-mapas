@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     .maybeSingle();
 
   if (qErr || !perfil) {
-    return res.status(404).json({ error: 'Sin cuenta asociada a ese documento.' });
+    return res.status(404).json({ error: 'No hay cuenta con ese documento. Pida al administrador que verifique la cédula en su perfil.' });
   }
 
   const { data: authData, error: uErr } = await supaAdmin.auth.admin.getUserById(perfil.id);

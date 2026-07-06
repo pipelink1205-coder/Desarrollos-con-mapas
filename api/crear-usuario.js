@@ -21,6 +21,16 @@ function normalizarCedula(s) {
   return String(s || '').replace(/\D/g, '');
 }
 
+const DOMINIO_EMAIL_INTERNO = 'usuarios.mapa.epi';
+
+function emailInternoDesdeCedula(cedulaDigits) {
+  return `${cedulaDigits}@${DOMINIO_EMAIL_INTERNO}`;
+}
+
+function validarCedula(digits) {
+  return digits && digits.length >= 5 && digits.length <= 12;
+}
+
 export default async function handler(req, res) {
   // Solo aceptamos POST y DELETE
   if (req.method !== 'POST' && req.method !== 'DELETE') {
@@ -56,8 +66,8 @@ export default async function handler(req, res) {
     .eq('id', user.id)
     .single();
 
-  if (perfilError || !perfil || perfil.rol !== 'admin' || !perfil.activo) {
-    return res.status(403).json({ error: 'Solo los administradores pueden gestionar usuarios' });
+  if (perfilError || !perfil || perfil.rol !== 'super_admin' || !perfil.activo) {
+    return res.status(403).json({ error: 'Solo el super administrador puede gestionar usuarios' });
   }
 
   // ------- 3. Cliente con service_role para acciones admin -------
@@ -72,12 +82,20 @@ export default async function handler(req, res) {
     email           = typeof email === 'string' ? email.trim().toLowerCase() : '';
     nombre_completo = typeof nombre_completo === 'string' ? nombre_completo.trim() : '';
     if (!['admin', 'consulta'].includes(rol)) {
-      return res.status(400).json({ error: 'Rol inválido' });
+      return res.status(400).json({ error: 'Rol inválido al crear (consulta o administrador editor). Use editar para super administrador.' });
     }
     const cedulaDigits = normalizarCedula(cedula);
 
-    if (!email || !password || !nombre_completo) {
-      return res.status(400).json({ error: 'Faltan campos: email, password, nombre_completo' });
+    if (!validarCedula(cedulaDigits)) {
+      return res.status(400).json({ error: 'La cédula es obligatoria (5 a 12 dígitos). El usuario inicia sesión con ese número.' });
+    }
+
+    if (!email) {
+      email = emailInternoDesdeCedula(cedulaDigits);
+    }
+
+    if (!password || !nombre_completo) {
+      return res.status(400).json({ error: 'Faltan campos: password, nombre_completo' });
     }
     const minLen = rol === 'consulta' ? 5 : 8;
     if (password.length < minLen) {
@@ -88,21 +106,19 @@ export default async function handler(req, res) {
       });
     }
 
-    if (cedulaDigits) {
-      const { data: existe } = await supaAdmin
-        .from('perfiles')
-        .select('id')
-        .eq('cedula', cedulaDigits)
-        .maybeSingle();
-      if (existe) {
-        return res.status(400).json({ error: 'Ya existe un usuario con ese número de documento.' });
-      }
+    const { data: existe } = await supaAdmin
+      .from('perfiles')
+      .select('id')
+      .eq('cedula', cedulaDigits)
+      .maybeSingle();
+    if (existe) {
+      return res.status(400).json({ error: 'Ya existe un usuario con ese número de documento.' });
     }
 
     const user_metadata = {
       nombre_completo,
       rol,
-      ...(cedulaDigits ? { cedula: cedulaDigits } : {}),
+      cedula: cedulaDigits,
     };
 
     const { data, error } = await supaAdmin.auth.admin.createUser({
@@ -116,18 +132,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: error.message });
     }
 
-    // Si el usuario debe estar inactivo, lo marcamos en su perfil
-    // (el trigger ya lo creó como activo por defecto)
-    if (activo === false) {
-      await supaAdmin.from('perfiles')
-        .update({ activo: false })
-        .eq('id', data.user.id);
-    }
+    await supaAdmin.from('perfiles').update({
+      debe_cambiar_password: true,
+      ...(activo === false ? { activo: false } : {}),
+    }).eq('id', data.user.id);
 
     return res.status(200).json({
       ok: true,
       user_id: data.user.id,
       email: data.user.email,
+      cedula: cedulaDigits,
+      login_con: 'Use el número de documento y la contraseña temporal en la pantalla de inicio.',
     });
   }
 

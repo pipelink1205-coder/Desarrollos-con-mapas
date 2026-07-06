@@ -85,8 +85,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
   </form>
 
   <p class="foot">
-    Puedes entrar con cualquier correo registrado o con tu cédula si el administrador la asoció a tu cuenta.<br>
-    Si necesitas acceso, contacta al administrador.
+    Entrada con <strong>número de documento</strong> (cédula registrada) o correo si tiene uno asociado.<br>
+    Tras una contraseña temporal, el sistema pedirá una contraseña nueva al primer acceso.
   </p>
 </div>
 
@@ -151,6 +151,16 @@ button:disabled{opacity:.6;cursor:not-allowed}
     const params  = new URLSearchParams(window.location.search);
     const next    = params.get('next');
 
+    if (perfil.debe_cambiar_password) {
+      saliendoPorAuth = true;
+      mostrarMsg('Acceso correcto. Debe elegir una contraseña nueva…', 'ok');
+      const dest = next && next.startsWith('/')
+        ? `/cambiar-password.html?next=${encodeURIComponent(next)}`
+        : '/cambiar-password.html';
+      window.location.assign(dest);
+      return;
+    }
+
     await asegurarSesionListaParaNavegar();
 
     // Pista para auth-guard: navegación reciente desde login / index.
@@ -160,7 +170,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
     if (next && next.startsWith('/')) {
       window.location.assign(next);
     } else {
-      window.location.assign(perfil.rol === 'admin' ? '/admin.html' : '/mapa.html');
+      window.location.assign(['admin', 'super_admin'].includes(perfil.rol) ? '/admin.html' : '/mapa.html');
     }
   }
 

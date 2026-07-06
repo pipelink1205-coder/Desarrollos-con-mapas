@@ -8,6 +8,36 @@ export const CODIGO_COMUNA_SIN_SEDE_FISICA = '17 - SIN SEDE FISICA';
 
 export const MED_BBOX = { latMin: 5.85, latMax: 6.65, lonMin: -76.05, lonMax: -75.25 };
 
+export const MAPA_VALLE_MIN_ZOOM = 10;
+export const MAPA_VALLE_MAX_ZOOM = 18;
+
+export function boundsValleLeaflet(L) {
+  return L.latLngBounds(
+    [MED_BBOX.latMin, MED_BBOX.lonMin],
+    [MED_BBOX.latMax, MED_BBOX.lonMax],
+  );
+}
+
+export function opcionesMapaValle(L, extra = {}) {
+  return {
+    minZoom: MAPA_VALLE_MIN_ZOOM,
+    maxZoom: MAPA_VALLE_MAX_ZOOM,
+    maxBounds: boundsValleLeaflet(L),
+    maxBoundsViscosity: 1.0,
+    ...extra,
+  };
+}
+
+export function opcionesTileValle(L, extra = {}) {
+  return {
+    attribution: '© OpenStreetMap contributors',
+    minZoom: MAPA_VALLE_MIN_ZOOM,
+    maxZoom: MAPA_VALLE_MAX_ZOOM,
+    bounds: boundsValleLeaflet(L),
+    ...extra,
+  };
+}
+
 const CODIGOS_COMUNA_REPORTE = new Set([
   CODIGO_COMUNA_FUERA_MEDELLIN.toUpperCase(),
   CODIGO_COMUNA_SIN_SEDE_FISICA.toUpperCase(),
