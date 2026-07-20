@@ -75,7 +75,7 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 
 /* MAPA */
 .mwrap{flex:1;position:relative;min-width:0}
-#mapa{width:100%;height:100%}
+#mapa{position:absolute;inset:0;width:100%;height:100%}
 
 /* HINT FLOTANTE */
 .mhint{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(12,30,51,.9);color:white;padding:7px 16px;border-radius:20px;font-size:11px;pointer-events:none;white-space:nowrap;transition:opacity .4s;backdrop-filter:blur(4px)}
@@ -101,6 +101,25 @@ body{background:#0f2238;font-size:13px;display:flex;flex-direction:column}
 .leaflet-srv-pin-wrap.srv-map-pin-active .srv-map-pin-dual{background:linear-gradient(135deg,#f59e0b 0 50%,#fb923c 50% 100%)!important}
 .leaflet-srv-pin-wrap.srv-map-pin-active .srv-map-pin-badge{background:#b45309}
 .leaflet-interactive.map-pin-active{filter:drop-shadow(0 0 7px rgba(245,158,11,.85)) drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.leaflet-popup.popup-mob-burbuja .leaflet-popup-content-wrapper{
+  border-radius:12px;
+  box-shadow:0 10px 28px rgba(15,23,42,.28);
+  padding:0;
+}
+.leaflet-popup.popup-mob-burbuja .leaflet-popup-content{
+  margin:10px 12px;
+  line-height:1.35;
+}
+.leaflet-popup.popup-mob-burbuja .leaflet-popup-close-button{
+  width:26px;height:26px;
+  font-size:18px;
+  line-height:26px;
+  top:4px;right:4px;
+  color:#64748b;
+}
+.leaflet-popup.popup-mob-burbuja .leaflet-popup-tip{
+  box-shadow:0 3px 8px rgba(15,23,42,.15);
+}
 .lsep{border:none;border-top:1px solid var(--borde);margin:7px 0}
 .lgrad{height:8px;width:100%;border-radius:3px;margin-bottom:2px}
 .lnums{display:flex;justify-content:space-between;font-size:9px;color:var(--txt2)}
@@ -391,7 +410,7 @@ button.chip{appearance:none;-webkit-appearance:none}
   .srv-cat-chip{font-size:9px;padding:4px 9px}
 
   /* Mapa fijo arriba + listado con scroll independiente; al bajar el listado el mapa se reduce */
-  :root{--mob-mapa-parte:45%;--mob-mapa-parte-expandida:22%}
+  :root{--mob-mapa-parte:45%;--mob-mapa-parte-explorar:75%;--mob-mapa-parte-expandida:25%;--mob-mapa-parte-inst:75%}
   html,body{
     height:100dvh;
     max-height:100dvh;
@@ -445,7 +464,11 @@ button.chip{appearance:none;-webkit-appearance:none}
     transition:flex-basis .28s ease,min-height .28s ease;
   }
   #lay-mapa.mob-lista-expandida{--mob-mapa-parte:var(--mob-mapa-parte-expandida)}
-  #mapa{width:100%;height:100%}
+  /* Sin zona elegida: mapa grande (~75 %), panel compacto (~25 %) para explorar comunas */
+  #lay-mapa.mob-mapa-explorar{--mob-mapa-parte:var(--mob-mapa-parte-explorar)}
+  /* Institución elegida en listado: mapa ~75 %, ficha compacta como antes */
+  #lay-mapa.mob-inst-map-focus{--mob-mapa-parte:var(--mob-mapa-parte-inst)}
+  #lay-mapa.mob-lista-expandida.mob-inst-map-focus{--mob-mapa-parte:var(--mob-mapa-parte-expandida)}
   /* Con comuna: un solo scroll en todo el panel (título, KPIs, filtros y tarjetas) */
   #lay-mapa.mob-panel-unificado .panel{
     overflow-y:auto;
@@ -532,6 +555,9 @@ button.chip{appearance:none;-webkit-appearance:none}
   }
 
   /* Globo compacto dentro de .mwrap (pin / tarjeta); fullscreen solo con .ficha-fullscreen */
+  #lay-mapa.mob-inst-map-focus .mapa-ficha:not(.ficha-fullscreen){
+    max-height:min(78%,calc(100% - 56px));
+  }
   .mapa-ficha{
     position:absolute;
     left:8px;
@@ -1560,12 +1586,13 @@ function aplicarKpisLista(orgs) {
   }
 }
 
-let mapa=null, layerGeo=null, layerPtos=null, layerLabels=null, labelZoomRaf=null;
+let mapa=null, layerGeo=null, layerPtos=null, layerLabels=null;
 const orgMarkerById = new Map();
 const zonaLayerByKey = new Map();
 let lastFichaTrigger = null;
 let fichaOrgIdActiva = null;
 let marcadorActivoId = null;
+let ignorarPopupCloseMobil = false;
 
 const CFG = {
   disc:{ c:'#2563eb', bg:'#dbeafe', lbl:'♿ Discapacidad',   data:()=>DISC_ORGS, r:7 },
@@ -1589,11 +1616,18 @@ function heatColor(cnt, correg) {
 //  MAPA INIT
 // =====================================================================
 function initMapa() {
-  mapa = L.map('mapa', opcionesMapaValle(L, { zoomControl: true, preferCanvas: true }))
-         .setView([6.2518, -75.5636], 12);
+  mapa = L.map('mapa', opcionesMapaValle(L, {
+    zoomControl: true,
+    wheelDebounceTime: 0,
+    zoomAnimation: false,
+    markerZoomAnimation: false,
+    fadeAnimation: false,
+  })).setView([6.2518, -75.5636], 12);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opcionesTileValle(L))
-    .addTo(mapa);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    ...opcionesTileValle(L),
+    updateWhenZooming: true,
+  }).addTo(mapa);
 
   layerGeo = L.geoJSON(GEO, {
     style: f => estiloZona(f, false),
@@ -1610,11 +1644,18 @@ function initMapa() {
   pintarLabels();
   actualizarLeyenda();
 
-  mapa.on('zoom', schedulePintarLabels);
-  mapa.on('zoomend', pintarLabels);
+  mapa.on('zoom', actualizarEtiquetasPorZoom);
+  mapa.on('zoomanim', (e) => actualizarEtiquetasPorZoom(e.zoom));
   mapa.on('popupopen', syncMobMapUi);
   mapa.on('popupclose', () => {
+    if (ignorarPopupCloseMobil) return;
+    if (document.getElementById('mapa-ficha')?.classList.contains('open')) return;
     document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
+    if (esVistaMovil()) {
+      fichaOrgIdActiva = null;
+      limpiarResaltadoMarcadorMapa();
+      setMobInstMapFocus(false);
+    }
     syncMobMapUi();
   });
   poblarSelectorZonasA11y();
@@ -1661,21 +1702,29 @@ function tamFuenteEtiqueta(z) {
   return Math.min(30, Math.max(7.5, raw));
 }
 
-function schedulePintarLabels() {
-  if (labelZoomRaf != null) return;
-  labelZoomRaf = requestAnimationFrame(() => {
-    labelZoomRaf = null;
-    pintarLabels();
+/** Actualiza opacidad/tamaño de etiquetas en vivo (sin recrear capas). */
+function actualizarEtiquetasPorZoom(zOpt) {
+  if (!mapa || !layerLabels) return;
+  const z = zOpt != null ? zOpt : mapa.getZoom();
+  const fade = opacidadEtiquetaPorZoom(z);
+  const sizePx = tamFuenteEtiqueta(z);
+  const oculto = fade <= 0.02;
+  layerLabels.eachLayer((mk) => {
+    const root = mk.getElement?.();
+    if (!root) return;
+    root.style.display = oculto ? 'none' : '';
+    const span = root.querySelector('.leaflet-label-txt');
+    if (!span) return;
+    span.style.opacity = String(fade);
+    span.style.fontSize = `${sizePx}px`;
   });
 }
 
+/** Construye etiquetas una sola vez; el zoom solo ajusta estilos (actualizarEtiquetasPorZoom). */
 function pintarLabels() {
   if (!mapa) return;
   if (layerLabels) { mapa.removeLayer(layerLabels); layerLabels = null; }
   const z = mapa.getZoom();
-  const fade = opacidadEtiquetaPorZoom(z);
-  if (fade <= 0.02) return;
-
   const sizePx = tamFuenteEtiqueta(z);
   layerLabels = L.layerGroup();
 
@@ -1695,9 +1744,9 @@ function pintarLabels() {
 
     const icon = L.divIcon({
       className: correg ? 'leaflet-label-num leaflet-label-correg' : 'leaflet-label-num',
-      html: `<span style="
+      html: `<span class="leaflet-label-txt" style="
         font-size:${sizePx}px;font-weight:700;color:${color};
-        opacity:${fade};display:block;text-align:center;line-height:1;
+        opacity:1;display:block;text-align:center;line-height:1;
         text-shadow:0 1px 2px rgba(255,255,255,.94),0 -1px 2px rgba(255,255,255,.94),
                     1px 0 2px rgba(255,255,255,.94),-1px 0 2px rgba(255,255,255,.94);
         pointer-events:none;white-space:nowrap">${num}</span>`,
@@ -1707,6 +1756,7 @@ function pintarLabels() {
     L.marker([p.clat, p.clon], { icon, interactive: false }).addTo(layerLabels);
   });
   layerLabels.addTo(mapa);
+  actualizarEtiquetasPorZoom(z);
 }
 
 function buildSrvPinDivHtml(o) {
@@ -1724,53 +1774,98 @@ function buildSrvPinDivHtml(o) {
   return `${wrapStart}<div class="srv-map-pin-core srv-map-pin-stack" style="background:${c1}"><span class="srv-map-pin-badge">${n}</span></div></div>`;
 }
 
-function bindOrgPopup(layer, o, cfg) {
-  const gratis    = o.cos && o.cos.toLowerCase().includes('sin costo');
-  const discsHtml = (o.discs||[]).map(d =>
-    `<span style="background:#dbeafe;color:#1e40af;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${d}</span>`
-  ).join('');
-  const srvCatHtml = (o.srv_cats||[]).slice(0,8).map(s =>
-    `<span style="background:#e0f2fe;color:#0369a1;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${String(s).replace(/</g, '&lt;')}</span>`,
-  ).join('');
-  const progHtml = o.programa ? `<div style="color:#64748b;font-size:10px;font-style:italic;margin-bottom:3px">${o.programa.slice(0,50)}</div>` : '';
-  const dimHtml  = (o.eje||o.dim)&&(o.eje||o.dim)!=='nan' ? `<div style="color:#7c3aed;font-size:10px;margin-bottom:2px">📌 ${(o.eje||o.dim).replace(/\n/g,' ').slice(0,40)}</div>` : '';
+function htmlPopupOrg(o, cfg) {
+  const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const btnFicha = `<button type="button" class="btn-ficha-popup" data-org-id="${o.id}" style="margin-top:8px;width:100%;padding:7px 8px;background:#1a3a5c;color:white;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">📋 Ver ficha completa</button>`;
 
-  layer.bindPopup(`
-    <div style="min-width:215px;max-width:268px;font-size:12px">
-      <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-bottom:5px">${cfg.lbl}</div>
-      <strong style="color:#1a3a5c;font-size:13px;display:block;margin-bottom:3px">${o.n}</strong>
-      ${o.d&&o.d!=='nan'?`<div style="color:#64748b;font-size:11px;margin-bottom:2px">📍 ${o.d}</div>`:''}
-      ${progHtml}${dimHtml}
-      ${srvCatHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${srvCatHtml}</div>` : ''}
-      ${discsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>` : ''}
-      ${o.cos&&o.cos!=='nan'?`<div style="font-size:11px;color:${gratis?'#15803d':'#a16207'};margin-bottom:3px">💰 ${o.cos.slice(0,35)}</div>`:''}
-      ${o.cupos&&o.cupos!=='nan'?`<div style="font-size:11px;color:#7c3aed;margin-bottom:3px">👥 Cupos: ${o.cupos}</div>`:''}
-      ${o.srv&&o.srv!=='nan'?`<div style="margin-top:5px;padding-top:5px;border-top:1px solid #e2e8f0"><span style="font-size:10px;font-weight:700;color:#475569;display:block;margin-bottom:2px">Servicio</span><div style="color:#475569;font-size:11px;line-height:1.4">${o.srv.replace(/\n/g,' ').slice(0,115)}…</div></div>`:''}
-      ${o.tel&&o.tel!=='nan'?`<div style="color:#2563eb;font-size:11px;font-weight:500;margin-bottom:2px;line-height:1.45">📞 ${htmlTelefonosMapa(o.tel)}</div>`:''}
-      <button type="button" class="btn-ficha-popup" data-org-id="${o.id}" style="margin-top:8px;width:100%;padding:5px;background:#1a3a5c;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500">📋 Ficha completa</button>
-    </div>`, { maxWidth: 285 });
+  if (esVistaMovil()) {
+    const dir = o.d && o.d !== 'nan'
+      ? `<div style="color:#64748b;font-size:11px;margin:4px 0;line-height:1.35">📍 ${esc(o.d.slice(0, 48))}</div>`
+      : '';
+    return `<div style="min-width:178px;max-width:236px;font-size:12px">
+      <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;margin-bottom:4px">${cfg.lbl}</div>
+      <strong style="color:#1a3a5c;font-size:13px;display:block;line-height:1.25">${esc(o.n)}</strong>
+      ${dir}
+      ${btnFicha}
+    </div>`;
+  }
+
+  const gratis = o.cos && o.cos.toLowerCase().includes('sin costo');
+  const discsHtml = (o.discs || []).map(d =>
+    `<span style="background:#dbeafe;color:#1e40af;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${esc(d)}</span>`,
+  ).join('');
+  const srvCatHtml = (o.srv_cats || []).slice(0, 8).map(s =>
+    `<span style="background:#e0f2fe;color:#0369a1;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${esc(s)}</span>`,
+  ).join('');
+  const progHtml = o.programa ? `<div style="color:#64748b;font-size:10px;font-style:italic;margin-bottom:3px">${esc(o.programa.slice(0, 50))}</div>` : '';
+  const dimHtml = (o.eje || o.dim) && (o.eje || o.dim) !== 'nan'
+    ? `<div style="color:#7c3aed;font-size:10px;margin-bottom:2px">📌 ${esc(String(o.eje || o.dim).replace(/\n/g, ' ').slice(0, 40))}</div>`
+    : '';
+
+  return `<div style="min-width:215px;max-width:268px;font-size:12px">
+    <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-bottom:5px">${cfg.lbl}</div>
+    <strong style="color:#1a3a5c;font-size:13px;display:block;margin-bottom:3px">${esc(o.n)}</strong>
+    ${o.d && o.d !== 'nan' ? `<div style="color:#64748b;font-size:11px;margin-bottom:2px">📍 ${esc(o.d)}</div>` : ''}
+    ${progHtml}${dimHtml}
+    ${srvCatHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${srvCatHtml}</div>` : ''}
+    ${discsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>` : ''}
+    ${o.cos && o.cos !== 'nan' ? `<div style="font-size:11px;color:${gratis ? '#15803d' : '#a16207'};margin-bottom:3px">💰 ${esc(o.cos.slice(0, 35))}</div>` : ''}
+    ${o.cupos && o.cupos !== 'nan' ? `<div style="font-size:11px;color:#7c3aed;margin-bottom:3px">👥 Cupos: ${esc(o.cupos)}</div>` : ''}
+    ${o.srv && o.srv !== 'nan' ? `<div style="margin-top:5px;padding-top:5px;border-top:1px solid #e2e8f0"><span style="font-size:10px;font-weight:700;color:#475569;display:block;margin-bottom:2px">Servicio</span><div style="color:#475569;font-size:11px;line-height:1.4">${esc(o.srv.replace(/\n/g, ' ').slice(0, 115))}…</div></div>` : ''}
+    ${o.tel && o.tel !== 'nan' ? `<div style="color:#2563eb;font-size:11px;font-weight:500;margin-bottom:2px;line-height:1.45">📞 ${htmlTelefonosMapa(o.tel)}</div>` : ''}
+    ${btnFicha}
+  </div>`;
+}
+
+function wirePopupFichaBtn(o) {
+  const btn = document.querySelector('.leaflet-popup .btn-ficha-popup');
+  if (!btn) return;
+  btn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const org = buscarOrgPorId(btn.dataset.orgId) || o;
+    if (org) abrirFichaDesdeMapa(org);
+  };
+}
+
+function activarSeleccionInstMobil(o, opts = {}) {
+  if (!esVistaMovil() || !o) return;
+  const { scrollLista = false } = opts;
+  if (zona || vistaSinSede || vistaFavoritos) {
+    setMobListaExpandida(false);
+    setMobInstMapFocus(true);
+  }
+  resaltarTarjetaLista(o.id, { scroll: scrollLista });
+  if (o.id) {
+    fichaOrgIdActiva = o.id;
+    resaltarMarcadorMapa(o.id);
+  }
+  syncMobMapUi();
+}
+
+function abrirPopupInstMobil(o) {
+  const mk = orgMarkerById.get(o.id);
+  if (!mk?.openPopup) return false;
+  activarSeleccionInstMobil(o, { scrollLista: false });
+  try { mk.openPopup(); } catch { return false; }
+  wirePopupFichaBtn(o);
+  return true;
+}
+
+function bindOrgPopup(layer, o, cfg) {
+  layer.bindPopup(() => htmlPopupOrg(o, cfg), {
+    maxWidth: esVistaMovil() ? 248 : 285,
+    className: esVistaMovil() ? 'popup-mob-burbuja' : '',
+    autoPanPadding: esVistaMovil() ? [48, 48] : [20, 20],
+  });
 
   layer.on('popupopen', () => {
-    if (esVistaMovil()) {
-      setTimeout(() => {
-        try { layer.closePopup(); } catch { /* */ }
-        abrirFichaGloboMovil(o);
-      }, 0);
-      return;
-    }
-    const btn = document.querySelector('.leaflet-popup .btn-ficha-popup');
-    if (btn) {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const org = buscarOrgPorId(btn.dataset.orgId);
-        if (org) abrirFichaDesdeMapa(org);
-      };
-    }
+    wirePopupFichaBtn(o);
+    if (esVistaMovil()) activarSeleccionInstMobil(o, { scrollLista: false });
   });
 
   layer.on('click', () => {
-    setTimeout(() => resaltarTarjetaLista(o.id), 80);
+    setTimeout(() => resaltarTarjetaLista(o.id, { scroll: !mobInstMapFocus }), 80);
   });
 }
 
@@ -2715,10 +2810,28 @@ function esVistaMovil() {
 }
 
 let mobListaExpandida = false;
+let mobInstMapFocus = false;
+let mobPanelScrollMuteUntil = 0;
+
+function silenciarScrollPanelMobil(ms = 800) {
+  mobPanelScrollMuteUntil = Date.now() + ms;
+}
+
+function syncMobMapPartesClasses() {
+  const lay = document.getElementById('lay-mapa');
+  const explorar = esVistaMovil() && !zona && !vistaSinSede && !vistaFavoritos;
+  lay?.classList.toggle('mob-mapa-explorar', explorar);
+  lay?.classList.toggle('mob-lista-expandida', mobListaExpandida);
+  lay?.classList.toggle('mob-inst-map-focus', mobInstMapFocus);
+}
 
 function actualizarTextoGripLista(expandida) {
   const txt = document.getElementById('panel-grip-txt');
   if (!txt) return;
+  if (mobInstMapFocus && !expandida) {
+    txt.textContent = 'Institución en el mapa · desliza el listado ↓ para ver más tarjetas';
+    return;
+  }
   txt.textContent = expandida
     ? 'Sube el listado hasta arriba para ver más mapa'
     : 'Desliza ↓: título, filtros y tarjetas suben juntos';
@@ -2728,23 +2841,35 @@ function mobPanelScrollEl() {
   return document.getElementById('panel');
 }
 
+function setMobInstMapFocus(activo) {
+  const zonaActiva = esVistaMovil() && (!!zona || vistaSinSede || vistaFavoritos);
+  mobInstMapFocus = !!(activo && zonaActiva);
+  if (mobInstMapFocus) {
+    mobListaExpandida = false;
+    silenciarScrollPanelMobil(800);
+  }
+  syncMobMapPartesClasses();
+  actualizarTextoGripLista(mobListaExpandida);
+  recalcMapaSizeAfterLayout();
+}
+
 /** En móvil: al hacer scroll en el panel, el mapa se reduce y el bloque completo sube (filtros incluidos). */
 function setMobListaExpandida(expandida) {
-  const lay = document.getElementById('lay-mapa');
   const grip = document.getElementById('panel-grip');
   const activa = esVistaMovil() && (!!zona || vistaSinSede || vistaFavoritos);
   if (!activa) expandida = false;
   mobListaExpandida = !!expandida;
-  lay?.classList.toggle('mob-lista-expandida', mobListaExpandida);
+  if (mobListaExpandida) mobInstMapFocus = false;
+  syncMobMapPartesClasses();
   if (grip) grip.setAttribute('aria-expanded', mobListaExpandida ? 'true' : 'false');
   actualizarTextoGripLista(mobListaExpandida);
-  recalcMapaSize();
-  setTimeout(recalcMapaSize, 320);
+  recalcMapaSizeAfterLayout();
 }
 
 function resetMobListaExpandida() {
   const panel = mobPanelScrollEl();
   if (panel) panel.scrollTop = 0;
+  setMobInstMapFocus(false);
   setMobListaExpandida(false);
 }
 
@@ -2757,8 +2882,14 @@ function initMobPanelScroll() {
   const UMBRAL_SUBIR = 8;
   panel.addEventListener('scroll', () => {
     if (!esVistaMovil() || !(zona || vistaSinSede || vistaFavoritos)) return;
-    if (panel.scrollTop > UMBRAL_BAJAR) setMobListaExpandida(true);
-    else if (panel.scrollTop <= UMBRAL_SUBIR) setMobListaExpandida(false);
+    if (Date.now() < mobPanelScrollMuteUntil) return;
+    if (mobInstMapFocus && panel.scrollTop <= UMBRAL_BAJAR) return;
+    if (panel.scrollTop > UMBRAL_BAJAR) {
+      setMobInstMapFocus(false);
+      setMobListaExpandida(true);
+    } else if (panel.scrollTop <= UMBRAL_SUBIR) {
+      setMobListaExpandida(false);
+    }
   }, { passive: true });
 
   grip?.addEventListener('click', () => {
@@ -2793,19 +2924,27 @@ function syncMobMapUi() {
   syncMobPanelUnificado();
   const grip = document.getElementById('panel-grip');
   if (grip) grip.hidden = !zonaActiva;
-  if (!zonaActiva && mobListaExpandida) setMobListaExpandida(false);
+  if (!zonaActiva) {
+    if (mobListaExpandida) setMobListaExpandida(false);
+    if (mobInstMapFocus) setMobInstMapFocus(false);
+  }
+  syncMobMapPartesClasses();
   const fichaFullscreen = !!(panelFicha && panelFicha.classList.contains('ficha-fullscreen'));
   document.body.classList.toggle('mob-ficha-open', movil && fichaOpen && fichaFullscreen);
-  recalcMapaSize();
+  if (movil) recalcMapaSizeAfterLayout();
+  else recalcMapaSize();
 }
 
-function resaltarTarjetaLista(id) {
+function resaltarTarjetaLista(id, opts = {}) {
+  const scroll = opts.scroll !== false;
   if (!id) return;
   document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
   const card = document.querySelector(`.ocard[data-id="${id}"]`);
   if (card) {
     card.classList.add('hl');
-    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (scroll && !mobInstMapFocus) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
   syncMobMapUi();
 }
@@ -2824,22 +2963,18 @@ function actualizarAvisoFichaMapa(o, encuadro) {
   }
 }
 
-function cerrarFichaPanel() {
+function cerrarFichaPanel(opts = {}) {
+  const { conservarMapaFocus = false } = opts;
   const panel = document.getElementById('mapa-ficha');
   if (!panel) return;
   const restoreFocus = lastFichaTrigger;
-  if (esVistaMovil() && panel.classList.contains('ficha-fullscreen')) {
-    panel.classList.remove('ficha-fullscreen');
-    syncMobMapUi();
-    setTimeout(() => document.getElementById('mapa-ficha-cerrar')?.focus(), 60);
-    return;
-  }
   panel.classList.remove('open', 'ficha-fullscreen');
   panel.hidden = true;
   document.getElementById('mapa-ficha-fav')?.setAttribute('hidden', '');
   fichaOrgIdActiva = null;
   limpiarResaltadoMarcadorMapa();
   document.querySelectorAll('.ocard').forEach((c) => c.classList.remove('hl'));
+  if (!conservarMapaFocus) setMobInstMapFocus(false);
   syncMobMapUi();
   if (restoreFocus?.focus) {
     setTimeout(() => restoreFocus.focus(), 60);
@@ -2878,15 +3013,25 @@ function abrirFichaPanel(o) {
   setTimeout(() => document.getElementById('mapa-ficha-cerrar')?.focus(), 60);
 }
 
-/** Globo compacto en móvil (dentro de .mwrap), sin pantalla completa. */
-function abrirFichaGloboMovil(o) {
+/** Ficha completa (en móvil: pantalla completa con .ficha-fullscreen). */
+function abrirFichaDesdeMapa(o) {
   if (!o) return;
-  const panel = document.getElementById('mapa-ficha');
-  if (panel) panel.classList.remove('ficha-fullscreen');
-  resaltarTarjetaLista(o.id);
+  ignorarPopupCloseMobil = true;
   cerrarTodosPopupsMapa();
+  resaltarTarjetaLista(o.id);
   abrirFichaPanel(o);
   actualizarAvisoFichaMapa(o, !!coordsOrgMapa(o));
+  const panel = document.getElementById('mapa-ficha');
+  if (esVistaMovil() && panel) panel.classList.add('ficha-fullscreen');
+  syncMobMapUi();
+  ignorarPopupCloseMobil = false;
+  if (mapa && coordsOrgMapa(o) && !vistaSinSede) {
+    setTimeout(() => {
+      if (window.innerWidth > 720) {
+        mapa.panBy([120, 0], { animate: true, duration: 0.42 });
+      }
+    }, 60);
+  }
 }
 
 function cerrarTodosPopupsMapa() {
@@ -2895,25 +3040,6 @@ function cerrarTodosPopupsMapa() {
     try { l.closePopup(); } catch { /* */ }
   });
   syncMobMapUi();
-}
-
-/** Ficha completa (en móvil: pantalla completa con .ficha-fullscreen). */
-function abrirFichaDesdeMapa(o) {
-  if (!o) return;
-  resaltarTarjetaLista(o.id);
-  cerrarTodosPopupsMapa();
-  abrirFichaPanel(o);
-  actualizarAvisoFichaMapa(o, !!coordsOrgMapa(o));
-  const panel = document.getElementById('mapa-ficha');
-  if (esVistaMovil() && panel) panel.classList.add('ficha-fullscreen');
-  syncMobMapUi();
-  if (mapa && coordsOrgMapa(o) && !vistaSinSede) {
-    setTimeout(() => {
-      if (window.innerWidth > 720) {
-        mapa.panBy([120, 0], { animate: true, duration: 0.42 });
-      }
-    }, 60);
-  }
 }
 
 function enfocarInstitucionEnMapa(o, opts = {}) {
@@ -2929,7 +3055,7 @@ function enfocarInstitucionEnMapa(o, opts = {}) {
       mapa.panBy([32, 0], { animate: true, duration: 0.35 });
     }
     if (abrirPopup) {
-      if (esVistaMovil()) abrirFichaGloboMovil(o);
+      if (esVistaMovil()) abrirPopupInstMobil(o);
       else if (mk?.openPopup) {
         try { mk.openPopup(); } catch { /* */ }
       }
@@ -2939,17 +3065,20 @@ function enfocarInstitucionEnMapa(o, opts = {}) {
   return true;
 }
 
-/** Clic en tarjeta del panel derecho: globo + zoom, sin ficha completa. */
+/** Clic en tarjeta del panel: igual que antes (ficha en mapa), pero el mapa pasa a ~75 % automáticamente. */
 function seleccionarInstitucionLista(o, cardEl) {
   if (!o) return;
-  cerrarFichaPanel();
+  const mobSel = esVistaMovil() && (zona || vistaSinSede || vistaFavoritos);
+  cerrarFichaPanel({ conservarMapaFocus: mobSel });
   lastFichaTrigger = cardEl || document.querySelector(`.ocard[data-id="${CSS.escape(o.id)}"]`);
-  resaltarTarjetaLista(o.id);
-  if (cardEl) {
-    cardEl.classList.add('hl');
-    cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (mobSel) {
+    setMobListaExpandida(false);
+    setMobInstMapFocus(true);
   }
-  enfocarInstitucionEnMapa(o, { abrirPopup: true, soloLista: true });
+  resaltarTarjetaLista(o.id, { scroll: !mobSel });
+  if (cardEl) cardEl.classList.add('hl');
+  const enfocado = enfocarInstitucionEnMapa(o, { abrirPopup: true, soloLista: true });
+  if (mobSel && !enfocado) abrirFichaDesdeMapa(o);
   syncMobMapUi();
 }
 
@@ -3052,29 +3181,63 @@ document.getElementById('sel-zona-a11y')?.addEventListener('change', (e) => {
 });
 initPanelCardsClick();
 setTimeout(() => {
+  syncMobMapPartesClasses();
   initMapa();
+  bindMapaResizeHooks();
   initMobPanelScroll();
   syncSrvCatBar();
   actualizarContadorSinSede();
   actualizarContadorFavoritos();
   renderCards();
   syncMobMapUi();
+  recalcMapaSizeAfterLayout();
 }, 50);
 initProductos();
 initSileoA11y({ variant: 'mapa' });
 
+let mapaResizeObs = null;
+let mapaResizeObsTimer = null;
+let mapaTransitionBound = false;
+
 function recalcMapaSize() {
   if (!mapa) return;
-  requestAnimationFrame(() => {
-    mapa.invalidateSize();
-  });
+  try {
+    mapa.invalidateSize({ pan: false, debounceMoveend: true });
+  } catch (_) { /* leaflet aún no listo */ }
 }
+
+function recalcMapaSizeAfterLayout() {
+  recalcMapaSize();
+  setTimeout(recalcMapaSize, 300);
+}
+
+function bindMapaResizeHooks() {
+  const wrap = document.querySelector('.mwrap');
+  if (!wrap) return;
+  if (!mapaResizeObs && typeof ResizeObserver !== 'undefined') {
+    mapaResizeObs = new ResizeObserver(() => {
+      clearTimeout(mapaResizeObsTimer);
+      mapaResizeObsTimer = setTimeout(recalcMapaSize, 80);
+    });
+    mapaResizeObs.observe(wrap);
+  }
+  if (!mapaTransitionBound) {
+    mapaTransitionBound = true;
+    wrap.addEventListener('transitionend', (e) => {
+      if (e.target !== wrap) return;
+      if (e.propertyName === 'flex-basis' || e.propertyName === 'min-height') {
+        recalcMapaSizeAfterLayout();
+      }
+    });
+  }
+}
+
 window.addEventListener('resize', recalcMapaSize);
-window.addEventListener('orientationchange', () => setTimeout(recalcMapaSize, 350));
+window.addEventListener('orientationchange', () => recalcMapaSizeAfterLayout());
 const mqMob = window.matchMedia('(max-width: 900px)');
 const onMqMob = () => {
   syncMobMapUi();
-  setTimeout(recalcMapaSize, 120);
+  recalcMapaSizeAfterLayout();
 };
 if (mqMob.addEventListener) mqMob.addEventListener('change', onMqMob);
 else if (mqMob.addListener) mqMob.addListener(onMqMob);
