@@ -2137,17 +2137,8 @@ function seleccionar(f, lyr) {
   mapa.fitBounds(lyr.getBounds(), { padding:[28,28], maxZoom:15 });
 
   const allOrgs  = CFG[tab].data();
-  const bounds   = lyr.getBounds();
   const nkZona   = claveComunaComparable(orgKey);
-  const zOrgs = tab === 'disc'
-    ? allOrgs.filter((o) => orgEnZona(o, f, nkZona))
-    : allOrgs.filter((o) => {
-        if (claveComunaComparable(o.c) === nkZona) return true;
-        const c = coordsOrgMapa(o);
-        if (!c) return false;
-        if (f.geometry && geoContainsPoint(c.lat, c.lon, f.geometry)) return true;
-        return bounds.contains([c.lat, c.lon]);
-      });
+  const zOrgs = allOrgs.filter((o) => orgEnZona(o, f, nkZona));
   zonaOrgs = zOrgs;
 
   const conGeo = zOrgs.filter(tieneCoords).length;
