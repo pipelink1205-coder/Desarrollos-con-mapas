@@ -684,12 +684,6 @@ async function verInstitucion(id) {
       fichaFila('Población objetivo', i.poblacion_objetivo),
       fichaFila('Requisitos', i.requisitos),
     ]),
-    fichaBloque('Política pública', [
-      fichaFila('Sector', i.sector),
-      fichaFila('Relacionamiento PP', i.nivel_relacionamiento_pp),
-      fichaFila('Eje PP', i.eje_pp_1),
-      fichaFila('Dimensión PP', i.dimension_pp),
-    ]),
     i.categoria === 'discapacidad'
       ? fichaBloque('Discapacidad', [
           discLabels.length
@@ -1327,8 +1321,7 @@ async function editarInstitucion(id) {
   const campos = [
     'categoria','nombre','programa','tipo_organizacion','direccion','direccion_complemento','comuna','barrio',
     'latitud','longitud','contacto_persona','servicios','costo',
-    'cupos','cobertura','poblacion_objetivo','requisitos','sector',
-    'nivel_relacionamiento_pp','eje_pp_1','dimension_pp',
+    'cupos','cobertura','poblacion_objetivo','requisitos',
   ];
   campos.forEach(c => {
     const el = $(`inst-${c}`);
@@ -1416,10 +1409,6 @@ $('btn-guardar-inst').addEventListener('click', async () => {
     cobertura:                    $('inst-cobertura').value.trim() || null,
     poblacion_objetivo:           $('inst-poblacion_objetivo').value.trim() || null,
     requisitos:                   $('inst-requisitos').value.trim() || null,
-    sector:                       $('inst-sector').value.trim() || null,
-    nivel_relacionamiento_pp:     $('inst-nivel_relacionamiento_pp').value.trim() || null,
-    eje_pp_1:                     $('inst-eje_pp_1').value.trim() || null,
-    dimension_pp:                 $('inst-dimension_pp').value.trim() || null,
     tipos_discapacidad:           discEtiquetas.length ? discEtiquetas : null,
     atiende_persona_discapacidad: $('inst-atiende_persona_discapacidad').checked,
     atiende_familia:              $('inst-atiende_familia').checked,

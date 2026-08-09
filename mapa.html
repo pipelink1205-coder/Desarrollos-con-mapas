@@ -1798,15 +1798,12 @@ function htmlPopupOrg(o, cfg) {
     `<span style="background:#e0f2fe;color:#0369a1;font-size:10px;padding:2px 5px;border-radius:6px;font-weight:500">${esc(s)}</span>`,
   ).join('');
   const progHtml = o.programa ? `<div style="color:#64748b;font-size:10px;font-style:italic;margin-bottom:3px">${esc(o.programa.slice(0, 50))}</div>` : '';
-  const dimHtml = (o.eje || o.dim) && (o.eje || o.dim) !== 'nan'
-    ? `<div style="color:#7c3aed;font-size:10px;margin-bottom:2px">📌 ${esc(String(o.eje || o.dim).replace(/\n/g, ' ').slice(0, 40))}</div>`
-    : '';
 
   return `<div style="min-width:215px;max-width:268px;font-size:12px">
     <div style="display:inline-block;background:${cfg.bg};color:${cfg.c};font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-bottom:5px">${cfg.lbl}</div>
     <strong style="color:#1a3a5c;font-size:13px;display:block;margin-bottom:3px">${esc(o.n)}</strong>
     ${o.d && o.d !== 'nan' ? `<div style="color:#64748b;font-size:11px;margin-bottom:2px">📍 ${esc(o.d)}</div>` : ''}
-    ${progHtml}${dimHtml}
+    ${progHtml}
     ${srvCatHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${srvCatHtml}</div>` : ''}
     ${discsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">${discsHtml}</div>` : ''}
     ${o.cos && o.cos !== 'nan' ? `<div style="font-size:11px;color:${gratis ? '#15803d' : '#a16207'};margin-bottom:3px">💰 ${esc(o.cos.slice(0, 35))}</div>` : ''}
@@ -2230,12 +2227,8 @@ function renderCardOrg(o) {
     `<span class="tag t-sc">${String(s).replace(/</g, '&lt;').slice(0, 32)}</span>`,
   ).join('');
   const discsT = (o.discs || []).map((d) => `<span class="tag t-d">${d}</span>`).join('');
-  const secT = o.sec && o.sec !== 'nan' ? `<span class="tag t-s">${o.sec.slice(0, 15)}</span>` : '';
   const cosT = o.cos && o.cos !== 'nan' ? `<span class="tag ${gratis ? 't-gr' : 't-pg'}">${gratis ? 'Sin costo' : o.cos.slice(0, 18)}</span>` : '';
-  const dimT = (o.eje || o.dim) && (o.eje || o.dim) !== 'nan' ? `<span class="tag t-dim">${(o.eje || o.dim).slice(0, 18)}</span>` : '';
   const qT = o.cupos && o.cupos !== 'nan' ? `<span class="tag t-q">👥 ${o.cupos.slice(0, 14)}</span>` : '';
-  const niv = o.niv && o.niv !== 'nan';
-  const ncls = niv && o.niv.toLowerCase().includes('alto') ? 'np-A' : niv && o.niv.toLowerCase().includes('medio') ? 'np-M' : 'np-B';
   const prog = o.programa && o.programa !== 'nan' ? `<div class="cprog">${o.programa.slice(0, 55)}</div>` : '';
   const cob = o.c && o.c !== 'nan' ? `<div class="cd" style="color:var(--txt2)">📋 Cobertura: ${String(o.c).replace(/</g, '&lt;')}</div>` : '';
   const geoIcon = orgSinSede(o)
@@ -2251,10 +2244,10 @@ function renderCardOrg(o) {
     ${o.d && o.d !== 'nan' ? `<div class="cd">📍 ${o.d}</div>` : ''}
     ${cob}
     ${prog}
-    <div class="tags">${srvsT}${discsT}${secT}${cosT}${dimT}${qT}</div>
+    <div class="tags">${srvsT}${discsT}${cosT}${qT}</div>
     <div class="cft">
       <span class="ctel">${o.tel && o.tel !== 'nan' ? '📞 ' + htmlTelefonosMapa(o.tel).replace(/<br>/g, ' · ') : ''}</span>
-      <span style="display:flex;align-items:center;gap:3px">${niv ? `<span class="np ${ncls}">${o.niv}</span>` : ''}${geoIcon}</span>
+      <span style="display:flex;align-items:center;gap:3px">${geoIcon}</span>
     </div>
   </div>`;
 }
@@ -2767,13 +2760,12 @@ function htmlFichaInstitucion(o) {
     ['📍 Dirección', o.d], ['🏙 Comuna', o.c], ['🏘 Barrio', o.barrio],
     ['📂 Categoría de servicio', (o.srv_cats || []).length ? (o.srv_cats || []).join('; ') : null],
     ['♿ Discapacidades', (o.discs || []).join(', ')], ['📋 Programa', o.programa],
-    ['📌 Dimensión PP', o.eje || o.dim], ['🏢 Sector', o.sec], ['💰 Costo', o.cos],
+    ['💰 Costo', o.cos],
     ['👥 Cupos', o.cupos], ['🌍 Cobertura', o.cobertura], ['👤 Población', o.poblacion],
     ['📋 Requisitos', o.req],
     ['📋 Servicio', o.srv ? o.srv.replace(/\n/g, ', ') : null],
     ['📞 Teléfono', htmlTelefonosMapa(o.tel) || null], ['✉ Correo', htmlEmailsMapa(o.email) || null],
     ['🌐 Página web', webHtml],
-    ['🔗 Nivel PP', o.niv],
   ];
   return campos
     .filter(([, v]) => v && String(v).trim() && v !== 'nan')
