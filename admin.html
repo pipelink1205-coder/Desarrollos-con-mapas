@@ -204,8 +204,8 @@ th.th-sort{padding:0;vertical-align:middle}
 
 <nav class="tabs">
   <button class="tab active" data-page="instituciones">🏛 Instituciones</button>
-  <button class="tab" data-page="inst-desactivadas" id="tab-inst-desactivadas">🚫 Desactivadas</button>
   <button class="tab"        data-page="productos">🦽 Productos</button>
+  <button class="tab" data-page="inst-desactivadas" id="tab-inst-desactivadas">🚫 INACTIVAS</button>
   <button class="tab"        data-page="usuarios" id="tab-usuarios">👥 Usuarios</button>
 </nav>
 
@@ -232,29 +232,6 @@ th.th-sort{padding:0;vertical-align:middle}
     </div>
   </section>
 
-  <!-- ============== INSTITUCIONES DESACTIVADAS (solo admin) ============== -->
-  <section class="page" id="page-inst-desactivadas">
-    <div class="toolbar">
-      <div class="toolbar-l">
-        <label for="busc-inst-des" class="sr-only">Buscar instituciones desactivadas</label>
-        <input class="search" id="busc-inst-des" type="search" aria-label="Buscar instituciones desactivadas" placeholder="🔍 Buscar desactivadas por nombre, comuna…">
-        <label for="filt-cat-inst-des" class="sr-only">Filtrar desactivadas por categoría</label>
-        <select class="select" id="filt-cat-inst-des" aria-label="Filtrar desactivadas por categoría">
-          <option value="">Todas las categorías</option>
-          <option value="discapacidad">♿ Discapacidad</option>
-          <option value="cuidado">💚 Cuidado</option>
-          <option value="mesa">🤝 Mesa</option>
-        </select>
-      </div>
-    </div>
-    <p class="hint" style="margin:-6px 0 12px;font-size:11px;color:var(--txt2);line-height:1.45">
-      Registros desactivados no aparecen en el mapa ni en el directorio de consulta. Se conservan para informes y pueden reactivarse.
-    </p>
-    <div class="tabla-wrap" id="tabla-inst-des-wrap">
-      <div class="loading"><span class="spinner"></span>Cargando desactivadas…</div>
-    </div>
-  </section>
-
   <!-- ============== PRODUCTOS ============== -->
   <section class="page" id="page-productos">
     <div class="toolbar">
@@ -266,6 +243,29 @@ th.th-sort{padding:0;vertical-align:middle}
     </div>
     <div class="tabla-wrap" id="tabla-prod-wrap">
       <div class="loading"><span class="spinner"></span>Cargando productos…</div>
+    </div>
+  </section>
+
+  <!-- ============== INSTITUCIONES INACTIVAS (solo admin) ============== -->
+  <section class="page" id="page-inst-desactivadas">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <label for="busc-inst-des" class="sr-only">Buscar instituciones inactivas</label>
+        <input class="search" id="busc-inst-des" type="search" aria-label="Buscar instituciones inactivas" placeholder="🔍 Buscar inactivas por nombre, comuna…">
+        <label for="filt-cat-inst-des" class="sr-only">Filtrar inactivas por categoría</label>
+        <select class="select" id="filt-cat-inst-des" aria-label="Filtrar inactivas por categoría">
+          <option value="">Todas las categorías</option>
+          <option value="discapacidad">♿ Discapacidad</option>
+          <option value="cuidado">💚 Cuidado</option>
+          <option value="mesa">🤝 Mesa</option>
+        </select>
+      </div>
+    </div>
+    <p class="hint" style="margin:-6px 0 12px;font-size:11px;color:var(--txt2);line-height:1.45">
+      Registros inactivos no aparecen en el mapa ni en el directorio de consulta. Se conservan para informes y pueden reactivarse.
+    </p>
+    <div class="tabla-wrap" id="tabla-inst-des-wrap">
+      <div class="loading"><span class="spinner"></span>Cargando inactivas…</div>
     </div>
   </section>
 

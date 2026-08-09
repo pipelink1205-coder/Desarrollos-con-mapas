@@ -653,8 +653,8 @@ async function verInstitucion(id) {
   const body = [
     !institucionActiva(i)
       ? fichaBloque('Estado del registro', [
-          fichaFila('Visible en mapa', 'No — desactivada', { always: true }),
-          fichaFila('Desactivada el', fmtFechaRegistro(i.desactivado_en)),
+          fichaFila('Visible en mapa', 'No — inactiva', { always: true }),
+          fichaFila('Inactiva desde', fmtFechaRegistro(i.desactivado_en)),
         ])
       : '',
     fichaBloque('Identificación', [
@@ -1065,7 +1065,7 @@ function renderInstDesactivadas() {
   );
 
   if (!lista.length) {
-    wrap.innerHTML = `<div class="empty"><div class="empty-ico">🚫</div><h3>Sin desactivadas</h3><p>Las instituciones desactivadas desde el listado activo aparecerán aquí.</p></div>`;
+    wrap.innerHTML = `<div class="empty"><div class="empty-ico">🚫</div><h3>Sin inactivas</h3><p>Las instituciones inactivadas desde el listado activo aparecerán aquí.</p></div>`;
     return;
   }
 
@@ -1076,7 +1076,7 @@ function renderInstDesactivadas() {
       <thead>
         <tr>
           <th>Cat.</th>${thOrdenable('Nombre', 'nombre', state.instDesSort)}${thOrdenable('Comuna', 'comuna', state.instDesSort)}
-          ${thOrdenable('Desactivada', 'desactivado_en', state.instDesSort)}<th>Barrio</th><th style="width:148px">Acciones</th>
+          ${thOrdenable('Inactiva', 'desactivado_en', state.instDesSort)}<th>Barrio</th><th style="width:148px">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -1472,7 +1472,7 @@ async function desactivarInstitucion(id) {
   const i = state.instituciones.find(x => x.id === id);
   if (!i) return;
   if (!confirm(
-    `¿Desactivar "${i.nombre}"?\n\nNo se borra el registro: quedará en el módulo Desactivadas y saldrá del mapa y del directorio consulta.`,
+    `¿Desactivar "${i.nombre}"?\n\nNo se borra el registro: quedará en el módulo Inactivas y saldrá del mapa y del directorio consulta.`,
   )) return;
 
   const { error } = await supabase.from('instituciones').update({
